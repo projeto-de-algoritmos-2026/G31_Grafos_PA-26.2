@@ -463,3 +463,52 @@ class Extrator:
 def extrair_grafo(texto: str, modelo: str = MODELO_PADRAO) -> Grafo:
     """Atalho para quem só quer o grafo e não as estatísticas."""
     return Extrator(modelo).extrair(texto).grafo
+
+
+# ---------------------------------------------------------------------------
+# Execução direta, para inspecionar a extração de um texto qualquer
+#
+#     python -m src.extracao data/exemplo_sintetico_com_laco.txt
+# ---------------------------------------------------------------------------
+
+def _main(argv: list[str]) -> int:
+    import sys
+
+    if len(argv) != 2:
+        print("uso: python -m src.extracao <arquivo.txt>", file=sys.stderr)
+        return 2
+
+    caminho = argv[1]
+    try:
+        texto = open(caminho, encoding="utf-8").read()
+    except OSError as erro:
+        print(f"não consegui ler {caminho}: {erro}", file=sys.stderr)
+        return 1
+
+    resultado = Extrator().extrair(texto)
+    grafo = resultado.grafo
+
+    print(resultado.resumo())
+    print()
+    print("ARESTAS (origem -> destino, peso)")
+    arestas = sorted(grafo.arestas(), key=lambda a: (-a.frequencia, a.origem))
+    largura = max((len(resultado.exibir(a.origem)) for a in arestas), default=10)
+    for aresta in arestas:
+        origem = resultado.exibir(aresta.origem)
+        destino = resultado.exibir(aresta.destino)
+        print(f"  {origem:<{largura}} -> {destino:<{largura}}  {aresta.peso:.2f}")
+
+    if resultado.frases_sem_aresta:
+        print()
+        print("FRASES QUE NÃO PRODUZIRAM ARESTA")
+        for frase in resultado.frases_sem_aresta:
+            recorte = frase if len(frase) <= 90 else frase[:87] + "..."
+            print(f"  - {recorte}")
+
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    import sys
+
+    raise SystemExit(_main(sys.argv))
