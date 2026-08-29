@@ -223,11 +223,27 @@ def _resolver_pronome(token):
         return token
 
     if token.pos_ in ("PRON", "DET") and token.lemma_.lower() in PRONOMES_RELATIVOS:
+        # caminho principal: a relativa se prende diretamente a um substantivo
         verbo = token.head
         antecedente = verbo.head
         if antecedente is not verbo and antecedente.pos_ in POS_NOMINAL:
             return antecedente
 
+        # recuo: a relativa se prendeu a um verbo, e o antecedente sintático
+        # se perdeu. O substantivo imediatamente à esquerda do pronome acerta
+        # na maioria dos casos, porque em português o relativo vem colado ao
+        # termo que retoma ("a população, que sofre...").
+        return _nominal_a_esquerda(token)
+
+    return None
+
+
+def _nominal_a_esquerda(token):
+    """Substantivo mais próximo à esquerda, dentro da mesma frase."""
+    frase = token.sent
+    for anterior in reversed(list(frase[: token.i - frase.start])):
+        if anterior.pos_ in POS_NOMINAL:
+            return anterior
     return None
 
 
