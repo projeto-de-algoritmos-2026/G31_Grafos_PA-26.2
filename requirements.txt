@@ -1,5 +1,5 @@
 # Extração de conceitos e relações a partir do texto
-spacy==3.7.5
+spacy>=3.7,<4
 
 # Interface do aplicativo
 streamlit==1.37.0
