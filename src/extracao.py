@@ -446,6 +446,20 @@ class Extrator:
                     vistas.add(par)
                     yield par
 
+    def conceitos_do_texto(self, texto: str) -> list[str]:
+        """
+        Conceitos mencionados num trecho, sem exigir estrutura de frase.
+
+        A extração de ARESTAS precisa de sujeito e objeto de um verbo. Mas
+        às vezes só interessa saber QUAIS conceitos aparecem num pedaço de
+        texto — no título da redação, que quase nunca tem verbo, ou no
+        último parágrafo, para achar de que a proposta de intervenção fala.
+
+        Devolve as chaves canônicas, na ordem de aparição, sem repetir.
+        """
+        documento = self._nlp(texto)
+        return self._rotulos(t for t in documento if t.pos_ in POS_NOMINAL)
+
     def _rotulos(self, tokens, exibicao: dict[str, str] | None = None) -> list[str]:
         """Converte tokens sintáticos em nomes de vértice, já refinados."""
         nomes: list[str] = []
