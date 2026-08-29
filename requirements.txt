@@ -1,0 +1,18 @@
+# Extração de conceitos e relações a partir do texto
+spacy==3.7.5
+
+# Interface do aplicativo
+streamlit==1.37.0
+
+# Visualização do grafo
+pyvis==0.3.2
+
+# Manipulação do corpus de redações
+pandas==2.2.2
+
+# Modelo de língua portuguesa (instalar depois do spacy):
+#   python -m spacy download pt_core_news_sm
+#
+# ATENÇÃO: o modelo _sm NÃO possui vetores de palavra.
+# O A* (opcional) exige o modelo médio:
+#   python -m spacy download pt_core_news_md

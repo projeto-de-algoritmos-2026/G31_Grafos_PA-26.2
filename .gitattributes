@@ -1,0 +1,4 @@
+# Normaliza as quebras de linha: o repositório guarda sempre LF,
+# independente de quem commita e de qual sistema operacional.
+# Evita diffs falsos em que o arquivo inteiro aparece como alterado.
+* text=auto eol=lf
