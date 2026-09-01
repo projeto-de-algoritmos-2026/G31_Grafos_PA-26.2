@@ -33,6 +33,20 @@ refinamentos, cada um documentado na função que o implementa:
     (d) coordenação           -> `_expandir_coordenados` e `_sujeitos_do_verbo`
     (e) verbo subordinado     -> `_herdar_sujeitos`
     (f) verbo mal etiquetado  -> `_e_nucleo_verbal`
+    (g) coesão entre frases   -> `_abre_com_conectivo` e `_conceito_principal`
+
+Os refinamentos (a) a (f) recuperam arestas perdidas DENTRO de uma frase.
+O (g) é diferente: liga frases VIZINHAS quando a segunda abre marcando
+consequência ("portanto", "dessa forma").
+
+Sobre o (g), o que foi medido em 50 redações do corpus: ele levou o maior
+componente do grafo de 28% para 34% dos conceitos. Pouco. Conectivos
+consecutivos em início de frase são raros — uma ou duas ocorrências por
+redação —, então entram poucas arestas. Ele fica no código porque a relação
+que captura é real e a direção é segura, mas NÃO resolve a fragmentação do
+grafo. Relações causais expressas dentro de frases isoladas não encadeiam
+uma redação inteira; essa é uma limitação da modelagem, documentada no
+README.
 
 O spaCy é usado aqui apenas como SENSOR: ele transforma texto em arestas.
 Toda a modelagem do grafo e todos os algoritmos que operam sobre ele são
@@ -101,6 +115,21 @@ DEP_OBJETO: frozenset[str] = frozenset({"obj", "iobj", "obl", "obl:agent", "xcom
 
 #: Categorias gramaticais que podem virar vértice.
 POS_NOMINAL: frozenset[str] = frozenset({"NOUN", "PROPN"})
+
+#: Conectivos que marcam CONSEQUÊNCIA e abrem a frase: o que veio antes é a
+#: causa, o que vem depois é o efeito. A direção é inequívoca, e é por isso
+#: que só estes entram — conectivos de causa ("porque", "já que") invertem
+#: o sentido conforme a posição na frase, e o risco de errar a direção não
+#: compensa.
+CONECTIVOS_CONSECUTIVOS: tuple[str, ...] = (
+    "portanto", "logo", "assim", "então", "consequentemente", "por conseguinte",
+    "dessa forma", "desse modo", "dessa maneira", "por isso", "diante disso",
+    "diante desse", "nesse sentido", "com isso", "por consequência", "sendo assim",
+    "em vista disso", "por essa razão", "por esse motivo", "destarte",
+)
+
+#: Quantos tokens do começo da frase são inspecionados à procura do conectivo.
+JANELA_DO_CONECTIVO = 5
 
 #: Relações em que um verbo subordinado compartilha o sujeito do verbo acima.
 #: "o Ministério **deve promover** a demarcação" — o sujeito está em "deve",
@@ -336,6 +365,18 @@ def _expandir_coordenados(tokens) -> Iterator:
                 yield filho
 
 
+def _abre_com_conectivo(frase) -> bool:
+    """A frase começa marcando consequência do que veio antes?"""
+    inicio = frase.text.strip().lower()
+    for conectivo in CONECTIVOS_CONSECUTIVOS:
+        if inicio.startswith(conectivo):
+            # exige fronteira de palavra: "assim" sim, "assimetria" não
+            resto = inicio[len(conectivo):]
+            if not resto or not resto[0].isalpha():
+                return True
+    return False
+
+
 def _rotulo(token) -> str:
     """
     Nome do vértice: lema do núcleo somado ao seu primeiro adjetivo.
@@ -399,6 +440,7 @@ class Extrator:
         """Percorre cada frase do texto e acumula as arestas encontradas."""
         documento = self._nlp(texto)
         resultado = Extracao(grafo=Grafo())
+        anterior: str | None = None  # conceito principal da frase anterior
 
         for frase in documento.sents:
             texto_frase = frase.text.strip()
@@ -408,6 +450,12 @@ class Extrator:
             resultado.frases_totais += 1
             arestas = list(self._arestas_da_frase(frase, resultado.rotulos))
 
+            # refinamento (g): coesão entre frases
+            principal = self._conceito_principal(frase, resultado.rotulos)
+            if anterior and principal and _abre_com_conectivo(frase):
+                if anterior != principal:
+                    arestas.append((anterior, principal))
+
             if arestas:
                 resultado.frases_produtivas += 1
                 for origem, destino in arestas:
@@ -415,7 +463,28 @@ class Extrator:
             else:
                 resultado.frases_sem_aresta.append(texto_frase)
 
+            if principal:
+                anterior = principal
+
         return resultado
+
+    def _conceito_principal(self, frase, exibicao=None) -> str | None:
+        """
+        O conceito de que a frase fala.
+
+        Preferência pelo sujeito do verbo principal, que é de quem a frase
+        predica algo. Sem sujeito nominal, cai no primeiro conceito válido
+        que aparecer.
+        """
+        for token in frase:
+            if not _e_nucleo_verbal(token):
+                continue
+            nomes = self._rotulos(_sujeitos_do_verbo(token), exibicao)
+            if nomes:
+                return nomes[0]
+
+        nomes = self._rotulos((t for t in frase if t.pos_ in POS_NOMINAL), exibicao)
+        return nomes[0] if nomes else None
 
     def _arestas_da_frase(self, frase, exibicao=None) -> Iterator[tuple[str, str]]:
         """Aplica a regra base e os quatro refinamentos a uma única frase."""
