@@ -304,12 +304,28 @@ def _avaliar_proposta(
                     f"{extracao.exibir(origem)} → {extracao.exibir(destino)}: {frases[0]}"
                 )
 
-    return Achado(
-        5, nome, OK,
-        f"a proposta '{extracao.exibir(caminho.melhor_proposta or '')}' se liga ao tema "
-        f"por {len(conceitos) - 1} relação(ões), custo {caminho.custo:.2f}",
-        evidencias,
+    # Relatar só a proposta mais barata infla o resultado: basta UM conceito do
+    # fecho estar ligado ao tema para o laudo soar aprovado, mesmo que os
+    # outros — os que carregam a intervenção de fato — estejam desligados.
+    # O denominador tem que aparecer.
+    total = len(caminho.custos_por_proposta) or 1
+    alcancadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
+    status = OK if alcancadas == total else ATENCAO
+
+    detalhe = (
+        f"{alcancadas} de {total} conceito(s) da proposta se ligam ao tema. "
+        f"O mais próximo é '{extracao.exibir(caminho.melhor_proposta or '')}', "
+        f"a {len(conceitos) - 1} relação(ões) de distância (custo {caminho.custo:.2f})"
     )
+    if alcancadas < total:
+        desligadas = [
+            extracao.exibir(p)
+            for p, c in caminho.custos_por_proposta.items()
+            if c == float("inf")
+        ]
+        detalhe += f". Sem ligação com o tema: {', '.join(desligadas[:4])}"
+
+    return Achado(5, nome, status, detalhe, evidencias)
 
 
 # ---------------------------------------------------------------------------

@@ -4,8 +4,9 @@ spacy>=3.7,<4
 # Interface do aplicativo
 streamlit==1.37.0
 
-# Visualização do grafo
-pyvis==0.3.2
+# O grafo é desenhado gerando DOT à mão (src/visualizacao.py), que o
+# Streamlit renderiza com st.graphviz_chart. Não há biblioteca de grafos
+# no projeto — nem como dependência transitiva.
 
 # Manipulação do corpus de redações
 pandas==2.2.2
