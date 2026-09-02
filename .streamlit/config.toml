@@ -1,0 +1,9 @@
+# Paleta do projeto. O padrão do Streamlit usa vermelho no botão primário,
+# e no nosso diagnóstico vermelho significa laço argumentativo — deixar os
+# dois na mesma tela confunde a leitura do grafo.
+[theme]
+primaryColor = "#1E6E5A"
+base = "dark"
+
+[browser]
+gatherUsageStats = false
