@@ -15,17 +15,21 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.diagnostico import ATENCAO, FALHA, INDEFINIDO, OK, diagnosticar
+from src.diagnostico import (ATENCAO, FALHA, INDEFINIDO, OBSERVACAO, OK,
+                             diagnosticar)
 from src.extracao import Extrator
 from src.visualizacao import legenda, para_dot
 
 PASTA_EXEMPLOS = Path("data")
 
+# Ícone, cor e o rótulo que o leitor vê. Internamente são
+# OK / ATENCAO / FALHA / INDEFINIDO (ver src/diagnostico.py).
 APARENCIA = {
-    OK: ("✅", "#1E6E5A", "sem apontamentos"),
+    OK: ("✅", "#1E6E5A", "tudo certo"),
     ATENCAO: ("⚠️", "#B8860B", "vale conferir"),
-    FALHA: ("⛔", "#A8402A", "problema na estrutura"),
-    INDEFINIDO: ("○", "#6B7975", "sem conclusão possível"),
+    FALHA: ("⛔", "#A8402A", "precisa de atenção"),
+    OBSERVACAO: ("💡", "#3B6EA5", "só para você saber"),
+    INDEFINIDO: ("○", "#6B7975", "não sabemos avaliar"),
 }
 
 NOMES_DAS_COMPETENCIAS = {
@@ -51,8 +55,8 @@ def cabecalho() -> None:
     st.set_page_config(page_title="Raio-X da Redação", page_icon="🕸️", layout="wide")
     st.title("Raio-X da Redação")
     st.caption(
-        "Diagnóstico da estrutura argumentativa por algoritmos em grafos · "
-        "Projeto de Algoritmos 2026.2 · UnB/FGA"
+        "Veja como as ideias da sua redação se ligam umas às outras — e onde o "
+        "encadeamento falha · Projeto de Algoritmos 2026.2 · UnB/FGA"
     )
 
 
@@ -73,15 +77,16 @@ def painel_de_entrada() -> tuple[str, str, str, bool, bool]:
 
         titulo = st.text_input(
             "Título da redação",
-            help="Ajuda a identificar o conceito que representa o tema.",
+            help="Ajuda a descobrir qual ideia do texto é a ideia central.",
         )
         enunciado = st.text_area(
             "Tema da prova (opcional)", height=80,
-            help="O texto motivador. Usado se o título não bastar.",
+            help="O enunciado que você recebeu. Usado quando o título não basta.",
         )
         apenas_conectados = st.checkbox(
-            "Esconder conceitos isolados", value=False,
-            help="Conceitos sem nenhuma relação. Em texto real são muitos.",
+            "Esconder ideias soltas", value=False,
+            help="Ideias que aparecem no texto sem se ligar a nenhuma outra. "
+                 "Deixa o mapa bem mais limpo.",
         )
         analisar = st.button("Analisar", type="primary", use_container_width=True)
 
@@ -98,23 +103,30 @@ def painel_de_entrada() -> tuple[str, str, str, bool, bool]:
 
 def mostrar_metricas(d) -> None:
     a, b, c, e = st.columns(4)
-    a.metric("Conceitos", d.num_conceitos)
-    b.metric("Relações", d.num_relacoes)
-    # Cadeia indisponível não é cadeia de tamanho zero: mostrar "0" aqui leria
-    # como qualidade nula, quando o que houve foi o Kahn não poder ordenar.
+    # vértices do grafo
+    a.metric("Ideias no texto", d.num_conceitos,
+             help="Cada assunto que a redação trata, contado uma vez só.")
+    # arestas do grafo
+    b.metric("Ligações", d.num_relacoes,
+             help="Quantas vezes uma ideia leva a outra: \"X provoca Y\", \"X gera Y\".")
+
+    # Sem cadeia não é cadeia de tamanho zero — mostrar "0" leria como qualidade
+    # nula, quando o que houve foi o Kahn não conseguir ordenar por causa do ciclo.
     if d.cadeia is None:
-        c.metric("Cadeia argumentativa", "—",
-                 help="Não calculável: o grafo tem ciclo, e a ordenação topológica "
-                      "exige a condensação dos componentes.")
+        c.metric("Sequência de ideias", "—",
+                 help="Não foi possível calcular: há um argumento em círculo no texto.")
     else:
-        c.metric("Cadeia argumentativa", d.tamanho_da_cadeia,
-                 help="Conceitos encadeados na ordenação topológica. É o indicador validado.")
-    e.metric("Cobertura", f"{d.cobertura:.0%}",
-             help="Fração das frases da redação que produziu ao menos uma relação.")
+        c.metric("Sequência de ideias", d.tamanho_da_cadeia,
+                 help="Quantos passos a redação encadeia, uma ideia levando à outra. "
+                      "É o número que melhor prevê a nota de coerência.")
+    # cobertura da extração
+    e.metric("Frases aproveitadas", f"{d.cobertura:.0%}",
+             help="Das frases da redação, quantas o programa conseguiu ler como "
+                  "uma ligação entre ideias.")
 
 
 def mostrar_achados(d) -> None:
-    st.subheader("Laudo")
+    st.subheader("O que encontramos")
 
     for achado in d.achados:
         icone, cor, rotulo = APARENCIA[achado.status]
@@ -133,16 +145,18 @@ def mostrar_achados(d) -> None:
 
     indefinidos = len(d.achados) - len(d.conclusivos)
     if indefinidos:
+        # honestidade na interface: dizemos o que ainda não sabemos ler
         st.info(
-            f"{indefinidos} dos {len(d.achados)} apontamentos ficaram sem conclusão. "
-            "Isso é resultado de medição, não omissão: as competências 2 e 5 dependem "
-            "de o grafo estar conectado, e a extração por frase não sustenta isso. "
-            "A Competência 3 é a que a validação no corpus banca."
+            f"{indefinidos} dos {len(d.achados)} pontos acima estão marcados como "
+            "\"não sabemos avaliar\". Isso é proposital: testamos esses indicadores em "
+            "160 redações já corrigidas por humanos e eles não distinguiram texto bom "
+            "de ruim, então preferimos mostrar o número sem dar veredito. O "
+            "encadeamento das ideias, sim, foi validado."
         )
 
 
 def mostrar_grafo(d, apenas_conectados: bool) -> None:
-    st.subheader("Grafo de conceitos")
+    st.subheader("Mapa das suas ideias")
 
     cores = " &nbsp;·&nbsp; ".join(
         f"<span style='color:{cor}'>█</span> {texto}" for cor, texto in legenda()
@@ -150,7 +164,7 @@ def mostrar_grafo(d, apenas_conectados: bool) -> None:
     st.markdown(f"<small>{cores}</small>", unsafe_allow_html=True)
 
     if not d.num_conceitos:
-        st.warning("Nenhum conceito foi extraído deste texto.")
+        st.warning("Não conseguimos identificar ideias neste texto.")
         return
 
     st.graphviz_chart(para_dot(d, apenas_conectados=apenas_conectados), use_container_width=True)
@@ -163,8 +177,8 @@ def mostrar_rastro(d) -> None:
 
     st.subheader("De onde veio cada ligação")
     st.caption(
-        "Cada relação do caminho aponta para a frase da redação que a gerou. "
-        "É o que torna o diagnóstico verificável em vez de opinativo."
+        "Cada ligação aponta para a frase da sua redação que a criou. Assim você "
+        "confere se a leitura do programa faz sentido."
     )
 
     from src.analise import rastrear_caminho
@@ -182,16 +196,16 @@ def main() -> None:
 
     if not analisar:
         st.info(
-            "Cole uma redação e clique em **Analisar**, ou carregue um exemplo pela "
-            "barra lateral."
+            "Cole a sua redação e clique em **Analisar**. Se quiser ver como funciona "
+            "primeiro, carregue um exemplo na barra lateral."
         )
         return
 
     if not texto.strip():
-        st.warning("Sem texto para analisar.")
+        st.warning("A caixa está vazia — cole uma redação para analisar.")
         return
 
-    with st.spinner("Montando o grafo e rodando os algoritmos..."):
+    with st.spinner("Lendo o texto e montando o mapa de ideias..."):
         d = diagnosticar(
             texto, titulo=titulo, enunciado=enunciado, extrator=carregar_extrator()
         )
@@ -199,7 +213,7 @@ def main() -> None:
     mostrar_metricas(d)
     if d.alvos.tema:
         st.caption(
-            f"Conceito-tema identificado: **{d.exibir(d.alvos.tema)}** "
+            f"Ideia central identificada: **{d.exibir(d.alvos.tema)}** "
             f"(a partir do {d.alvos.origem_do_tema})"
         )
 
