@@ -9,6 +9,12 @@ modelo, e são pulados sem ele.
 O teste mais importante deste arquivo é
 `TestCalibragem.test_o_corte_medido_e_respeitado`: se alguém mexer no
 limiar sem refazer a medição no corpus, ele falha.
+
+Sobre as asserções de texto: o laudo é lido por quem escreveu a redação, e
+a redação do texto é parte do produto — por isso alguns testes conferem o
+que aparece na tela. Eles se prendem a fragmentos estáveis ("círculo",
+"volta ao começo") e não a frases inteiras, para reescrever a linguagem não
+custar uma tarde de conserto de teste.
 """
 
 import unittest
@@ -17,6 +23,7 @@ from src import extracao as _extracao
 from src.alvos import Alvos
 from src.diagnostico import (
     ATENCAO,
+    OBSERVACAO,
     CADEIA_CORTE,
     CADEIA_MEDIANA_BOA,
     FALHA,
@@ -82,12 +89,13 @@ class TestProgressao(unittest.TestCase):
     def test_cadeia_longa_e_aprovada(self):
         a = self.avaliar(CADEIA_MEDIANA_BOA + 5)
         self.assertEqual(a.status, OK)
-        self.assertIn("acima da mediana", a.resumo)
+        # cita a referência do corpus para o leitor se situar
+        self.assertIn(str(CADEIA_MEDIANA_BOA), a.resumo)
 
     def test_cadeia_na_faixa_boa(self):
         a = self.avaliar(CADEIA_CORTE + 2)
         self.assertEqual(a.status, OK)
-        self.assertNotIn("acima da mediana", a.resumo)
+        self.assertNotIn(str(CADEIA_MEDIANA_BOA), a.resumo)
 
     def test_exatamente_no_corte_ainda_passa(self):
         self.assertEqual(self.avaliar(CADEIA_CORTE).status, OK)
@@ -102,11 +110,16 @@ class TestProgressao(unittest.TestCase):
         self.assertEqual(a.status, FALHA)
 
     def test_grafo_ciclico_fica_indefinido(self):
-        """Sem condensação, o Kahn não ordena — e o laudo diz isso."""
+        """
+        Sem condensação, o Kahn não ordena. E o laudo assume a limitação
+        como NOSSA — não pode soar como defeito da redação, porque a
+        medição mostrou que ciclo não indica texto pior.
+        """
         g = Grafo.de_pares([("a", "b"), ("b", "a")])
         a = _avaliar_progressao(g, None)
         self.assertEqual(a.status, INDEFINIDO)
-        self.assertIn("condensação", a.resumo)
+        self.assertIn("nosso cálculo", a.resumo)
+        self.assertIn("não do seu texto", a.resumo)
 
     def test_sempre_e_competencia_3(self):
         self.assertEqual(self.avaliar(25).competencia, 3)
@@ -117,21 +130,32 @@ class TestLacos(unittest.TestCase):
     def test_sem_laco_nao_gera_achado(self):
         self.assertIsNone(_avaliar_lacos([], _extracao_de(Grafo())))
 
-    def test_laco_e_atencao_nunca_falha(self):
-        """Ciclo vicioso pode ser intencional — a ferramenta aponta, não condena."""
+    def test_laco_e_observacao_nao_alerta(self):
+        """
+        Medido em 400 redações: ciclo aparece em 3,2% e a média de C3
+        desses textos é MAIOR (120 contra 113). Marcar como alerta seria
+        inventar um problema que a medição não encontrou.
+        """
         a = _avaliar_lacos([["a", "b", "c"]], _extracao_de(Grafo()))
-        self.assertEqual(a.status, ATENCAO)
-        self.assertNotEqual(a.status, FALHA)
+        self.assertEqual(a.status, OBSERVACAO)
+        self.assertNotIn(a.status, (ATENCAO, FALHA))
+
+    def test_laco_nao_entra_na_lista_de_problemas(self):
+        d = Diagnostico(
+            extracao=_extracao_de(_cadeia(3)), alvos=Alvos(),
+            achados=[_avaliar_lacos([["a", "b"]], _extracao_de(Grafo()))],
+        )
+        self.assertEqual(d.problemas, [])
 
     def test_mostra_o_ciclo_como_evidencia(self):
         a = _avaliar_lacos([["pobreza", "desemprego"]], _extracao_de(Grafo()))
         self.assertEqual(len(a.evidencias), 1)
         self.assertIn("pobreza", a.evidencias[0])
-        self.assertIn("volta ao início", a.evidencias[0])
+        self.assertIn("⇄", a.evidencias[0])  # vai e vem, não seta de mão única
 
     def test_plural_com_mais_de_um_laco(self):
         a = _avaliar_lacos([["a", "b"], ["c", "d"]], _extracao_de(Grafo()))
-        self.assertIn("2 laços", a.resumo)
+        self.assertIn("2 grupo", a.resumo)
 
     def test_usa_o_rotulo_de_exibicao(self):
         e = _extracao_de(Grafo(), {"política público": "políticas públicas"})
@@ -158,13 +182,13 @@ class TestTema(unittest.TestCase):
         g = _cadeia(5)
         g.adicionar_vertice("solto")
         achado, orfaos = _avaliar_tema(g, Alvos(tema="c0"), _extracao_de(g))
-        self.assertIn("5 dos 6", achado.resumo)
+        self.assertIn("5 das 6", achado.resumo)
         self.assertEqual(orfaos, ["solto"])
 
     def test_explica_por_que_nao_conclui(self):
         g = _cadeia(3)
         achado, _ = _avaliar_tema(g, Alvos(tema="c0"), _extracao_de(g))
-        self.assertIn("fragmentado", achado.resumo)
+        self.assertIn("não sabemos ler", achado.resumo)
 
 
 class TestProposta(unittest.TestCase):

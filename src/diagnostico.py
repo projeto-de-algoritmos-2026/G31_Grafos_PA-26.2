@@ -23,6 +23,7 @@ emite juízo onde a medição sustenta:
     ok          nada a apontar
     atencao     há indício, mas a decisão é de quem escreveu
     falha       problema objetivo na estrutura do texto
+    observacao  fato sobre o texto que não é elogio nem alerta
     indefinido  a modelagem atual não permite concluir
 
 O `indefinido` não é evasiva, é resultado. Medimos, no corpus:
@@ -47,10 +48,25 @@ O `indefinido` não é evasiva, é resultado. Medimos, no corpus:
     Por isso o módulo continua CALCULANDO e MOSTRANDO o caminho tema →
     proposta, que é informativo quando existe, mas não o converte em nota.
 
-Laço argumentativo é sempre `atencao`, nunca `falha`: ciclos viciosos
-existem no mundo real e um autor pode estar descrevendo um de propósito
-("a pobreza gera baixa escolaridade, que gera pobreza"). A ferramenta
-detecta e aponta; quem lê decide.
+O QUE MEDIMOS SOBRE OS CICLOS
+----------------------------
+Em 400 redações do corpus, ciclo aparece em 3,2% (13 casos). Dessas 13, a
+média de Competência 3 é 120, contra 113 nas 387 sem ciclo — ou seja,
+levemente MELHOR, o contrário da hipótese inicial. E 8 dos 13 ciclos têm
+apenas dois conceitos, o que costuma ser relação mútua legítima ("a pobreza
+compromete a educação, e a falta de educação perpetua a pobreza"), não
+falácia.
+
+Conclusão: ciclo é `observacao`, não `atencao`. Marcar com alerta seria
+inventar um problema que a medição não encontrou.
+
+O PAPEL DO TARJAN, ENTÃO
+------------------------
+Não é pontuar. É garantir que o indicador de Competência 3 funcione em
+TODA redação: sem a condensação dos componentes, o Kahn não ordena grafo
+cíclico, e 3,2% dos textos perderiam o único diagnóstico que a validação
+sustenta. O SCC é a camada de robustez do indicador principal — que é
+exatamente o papel dele no Cormen, cap. 22.5.
 """
 
 from __future__ import annotations
@@ -67,6 +83,8 @@ OK = "ok"
 ATENCAO = "atencao"
 FALHA = "falha"
 INDEFINIDO = "indefinido"
+#: fato sobre o texto, sem juízo — nem elogio nem alerta
+OBSERVACAO = "observacao"
 
 #: Corte que melhor separa os dois grupos de Competência 3 no Essay-BR:
 #: 74% de acerto sobre 160 redações (80 com C3 >= 160, 80 com C3 <= 80).
@@ -94,7 +112,7 @@ class Achado:
 
     def __str__(self) -> str:  # pragma: no cover - only for debugging
         marca = {OK: "[ok]", ATENCAO: "[atencao]", FALHA: "[falha]",
-                 INDEFINIDO: "[indefinido]"}[self.status]
+                 OBSERVACAO: "[observacao]", INDEFINIDO: "[indefinido]"}[self.status]
         return f"{marca} C{self.competencia} {self.nome} — {self.resumo}"
 
 
@@ -150,7 +168,7 @@ class Diagnostico:
         """Achados conclusivos que não são `ok`, do mais grave para o menos."""
         ordem = {FALHA: 0, ATENCAO: 1}
         return sorted(
-            (a for a in self.conclusivos if a.status != OK),
+            (a for a in self.conclusivos if a.status in ordem),
             key=lambda a: ordem[a.status],
         )
 
@@ -164,105 +182,122 @@ class Diagnostico:
 
 
 # ---------------------------------------------------------------------------
-# Competência 3 — coerência e progressão (validada)
+# Competência 3 — o indicador validado
+#
+# LINGUAGEM: os textos daqui aparecem na tela para quem escreveu a redação,
+# não para quem escreveu o código. Por isso "sequência de ideias" e não
+# "ordenação topológica", "argumento em círculo" e não "componente
+# fortemente conectado". O termo técnico fica no comentário ao lado.
 # ---------------------------------------------------------------------------
 
 def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
     """
-    O indicador que a medição sustenta.
-
-    O comprimento da cadeia argumentativa — a ordenação topológica do grafo
-    — distingue redações bem e mal avaliadas em coerência com 74% de acerto
-    no corpus. Não é um classificador; é um indicador com força medida, e o
-    laudo diz isso em vez de fingir precisão.
+    Comprimento da ordenação topológica — o único indicador que a medição
+    sustenta: distingue redações bem e mal avaliadas em coerência com 74%
+    de acerto no corpus (n=160).
     """
-    nome = "progressão"
+    nome = "encadeamento das ideias"
 
     if not grafo.num_vertices:
-        return Achado(3, nome, FALHA, "nenhum conceito foi extraído do texto")
+        return Achado(
+            3, nome, FALHA,
+            "não identificamos nenhuma ideia neste texto. Confira se ele foi "
+            "colado por inteiro",
+        )
 
+    # cadeia is None = o Kahn não ordena grafo com ciclo; a condensação dos
+    # componentes fortemente conectados resolveria
     if cadeia is None:
         return Achado(
             3, nome, INDEFINIDO,
-            "a cadeia não pôde ser ordenada porque o grafo tem ciclos — "
-            "a condensação dos componentes resolve isso",
+            "não conseguimos calcular a sequência porque há um grupo de ideias que "
+            "se puxam (veja abaixo). Isso é limitação do nosso cálculo, não do seu "
+            "texto",
         )
 
-    tamanho = len(cadeia)
-    if tamanho >= CADEIA_MEDIANA_BOA:
+    passos = len(cadeia)
+    if passos >= CADEIA_MEDIANA_BOA:
         return Achado(
             3, nome, OK,
-            f"cadeia de {tamanho} conceitos encadeados, acima da mediana das "
-            f"redações bem avaliadas em coerência ({CADEIA_MEDIANA_BOA})",
+            f"suas ideias formam uma sequência de {passos} passos, uma puxando a "
+            f"outra. Redações bem avaliadas em coerência ficam em torno de "
+            f"{CADEIA_MEDIANA_BOA} passos",
         )
-    if tamanho >= CADEIA_CORTE:
+    if passos >= CADEIA_CORTE:
         return Achado(
             3, nome, OK,
-            f"cadeia de {tamanho} conceitos encadeados, dentro da faixa das "
-            f"redações bem avaliadas em coerência",
+            f"suas ideias formam uma sequência de {passos} passos, dentro da faixa "
+            f"das redações bem avaliadas em coerência",
         )
     return Achado(
         3, nome, ATENCAO,
-        f"cadeia de apenas {tamanho} conceitos. No corpus, redações abaixo de "
-        f"{CADEIA_CORTE} conceitos encadeados costumam receber nota baixa em "
-        f"coerência — as ideias aparecem sem se encadear umas nas outras",
+        f"suas ideias formam uma sequência de apenas {passos} passos. Nas redações "
+        f"que analisamos, abaixo de {CADEIA_CORTE} costuma indicar ideias que "
+        f"aparecem soltas, sem uma levar à outra",
     )
 
 
 def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
-    """Laço argumentativo, quando existe. Aponta, não condena."""
+    """
+    Componentes fortemente conectados com mais de um vértice (Tarjan).
+
+    `observacao`, nunca `atencao`: ver a medição no topo do módulo — ciclo
+    não se correlacionou com coerência pior, e a maioria tem dois conceitos,
+    o que é relação mútua e não falácia.
+    """
     if not lacos:
         return None
 
     evidencias = [
-        " → ".join(extracao.exibir(c) for c in laco) + " → (volta ao início)"
-        for laco in lacos
+        " ⇄ ".join(extracao.exibir(c) for c in laco) for laco in lacos
     ]
     plural = "s" if len(lacos) > 1 else ""
     return Achado(
-        3, "circularidade", ATENCAO,
-        f"{len(lacos)} laço{plural} argumentativo{plural}: o texto retoma como "
-        f"justificativa um ponto que ele mesmo derivou. Confira se é um ciclo "
-        f"que você quis descrever.",
+        3, "ideias que se puxam", OBSERVACAO,
+        f"{len(lacos)} grupo{plural} de ideias em que cada uma aparece como causa da "
+        f"outra, formando um vai e vem. Isso não é erro — muitas vezes é o ciclo que "
+        f"você quis descrever. Vale reler só para confirmar que foi de propósito",
         evidencias,
     )
 
 
 # ---------------------------------------------------------------------------
-# Competências 2 e 5 — calculadas, reportadas, não convertidas em juízo
+# Competências 2 e 5 — calculadas e mostradas, sem virar juízo
 # ---------------------------------------------------------------------------
 
 def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achado, list[str]]:
     """
-    Competência 2 — alcance do tema.
+    Alcance do conceito-tema (Dijkstra a partir dele).
 
-    Reporta quantos conceitos são atingíveis a partir do conceito-tema. O
-    número é informativo para quem olha o grafo, mas não vira veredito: a
-    fragmentação limita o alcance a cerca de um terço dos conceitos mesmo
-    em redações boas.
+    Fica `indefinido` porque a fragmentação do grafo limita o alcance a
+    cerca de um terço dos vértices mesmo em redação boa — o número não
+    discrimina.
     """
-    nome = "alcance do tema"
+    nome = "ligação com o tema"
 
     if alvos.tema is None:
         return (
-            Achado(2, nome, INDEFINIDO,
-                   "não foi possível identificar, no grafo, o conceito que representa o tema"),
+            Achado(
+                2, nome, INDEFINIDO,
+                "não conseguimos identificar qual ideia do texto representa o tema. "
+                "Preencher o campo de título costuma resolver",
+            ),
             list(grafo.vertices),
         )
 
-    distancias = orbita(grafo, alvos.tema)
-    orfaos = [v for v in grafo.vertices if v not in distancias]
-    alcance = len(distancias) / grafo.num_vertices if grafo.num_vertices else 0.0
+    alcancadas = orbita(grafo, alvos.tema)  # distâncias a partir do tema
+    soltas = [v for v in grafo.vertices if v not in alcancadas]
 
     return (
         Achado(
             2, nome, INDEFINIDO,
-            f"o tema '{extracao.exibir(alvos.tema)}' alcança {len(distancias)} dos "
-            f"{grafo.num_vertices} conceitos ({alcance:.0%}). O grafo é fragmentado por "
-            f"limitação da extração, então este número não distingue redação boa de ruim",
-            [extracao.exibir(o) for o in orfaos[:6]],
+            f"a ideia central '{extracao.exibir(alvos.tema)}' se conecta a "
+            f"{len(alcancadas)} das {grafo.num_vertices} ideias do texto. Ainda não "
+            f"sabemos ler esse número: nas redações que analisamos ele fica baixo "
+            f"mesmo em textos bem avaliados",
+            [extracao.exibir(o) for o in soltas[:6]],
         ),
-        orfaos,
+        soltas,
     )
 
 
@@ -270,26 +305,25 @@ def _avaliar_proposta(
     grafo: Grafo, alvos: Alvos, caminho: ResultadoTemaProposta | None, extracao: Extracao
 ) -> Achado:
     """
-    Competência 5 — proposta de intervenção.
+    Caminho mínimo (Dijkstra) do conceito-tema até os conceitos da proposta.
 
-    Não ter identificado proposta nenhuma no último parágrafo é um achado
-    sobre o TEXTO, e vale como falha. Já a ausência de caminho entre tema e
-    proposta é, na maior parte dos casos, limitação da modelagem — por isso
-    fica `indefinido`, com o caminho ainda calculado e exibido quando existe.
+    Não achar proposta é achado sobre o TEXTO, e vale como falha. Não achar
+    caminho é, na maioria dos casos, limitação da modelagem — fica
+    `indefinido`.
     """
     nome = "proposta de intervenção"
 
     if not alvos.propostas:
         return Achado(
             5, nome, FALHA,
-            "nenhuma proposta de intervenção foi identificada no último parágrafo",
+            "não encontramos uma proposta de intervenção no último parágrafo",
         )
 
     if caminho is None or not caminho.alcancavel:
         return Achado(
             5, nome, INDEFINIDO,
-            "não há caminho no grafo entre o tema e a proposta. Na maioria das "
-            "redações isso reflete a fragmentação do grafo, não a redação",
+            "não encontramos um encadeamento de ideias ligando o tema à sua proposta. "
+            "Na maioria das redações isso é limitação da nossa análise, e não do texto",
             [extracao.exibir(p) for p in alvos.propostas[:4]],
         )
 
@@ -304,23 +338,23 @@ def _avaliar_proposta(
                     f"{extracao.exibir(origem)} → {extracao.exibir(destino)}: {frases[0]}"
                 )
 
-    # Relatar só a proposta mais barata infla o resultado: basta UM conceito do
-    # fecho estar ligado ao tema para o laudo soar aprovado, mesmo que os
-    # outros — os que carregam a intervenção de fato — estejam desligados.
-    # O denominador tem que aparecer.
+    # Reportar só a proposta mais próxima infla o resultado: bastaria UMA ideia
+    # do fecho estar ligada ao tema para o laudo soar aprovado. O denominador
+    # tem que aparecer.
     total = len(caminho.custos_por_proposta) or 1
-    alcancadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
-    status = OK if alcancadas == total else ATENCAO
+    ligadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
+    status = OK if ligadas == total else ATENCAO
 
+    passos = max(len(conceitos) - 1, 0)
     detalhe = (
-        f"{alcancadas} de {total} conceito(s) da proposta se ligam ao tema. "
-        f"O mais próximo é '{extracao.exibir(caminho.melhor_proposta or '')}', "
-        f"a {len(conceitos) - 1} relação(ões) de distância (custo {caminho.custo:.2f})"
+        f"{ligadas} de {total} ideia(s) da sua proposta se ligam ao tema. A mais "
+        f"próxima é '{extracao.exibir(caminho.melhor_proposta or '')}', a {passos} "
+        f"ligação(ões) de distância"
     )
-    if alcancadas < total:
+    if ligadas < total:
         desligadas = [
-            extracao.exibir(p)
-            for p, c in caminho.custos_por_proposta.items()
+            extracao.exibir(pr)
+            for pr, c in caminho.custos_por_proposta.items()
             if c == float("inf")
         ]
         detalhe += f". Sem ligação com o tema: {', '.join(desligadas[:4])}"
@@ -401,6 +435,7 @@ _MARCAS = {
     OK: "[ ok         ]",
     ATENCAO: "[ atencao    ]",
     FALHA: "[ falha      ]",
+    OBSERVACAO: "[ observacao ]",
     INDEFINIDO: "[ indefinido ]",
 }
 
@@ -423,10 +458,14 @@ def _main(argv: list[str]) -> int:
 
     d = diagnosticar(texto, titulo=titulo)
 
-    print(f"{d.num_conceitos} conceitos · {d.num_relacoes} relações · "
-          f"cobertura {d.cobertura:.0%} · cadeia de {d.tamanho_da_cadeia}")
+    # vértices · arestas · cobertura da extração · comprimento da ordenação
+    sequencia = "—" if d.cadeia is None else str(d.tamanho_da_cadeia)
+    print(f"{d.num_conceitos} ideias · {d.num_relacoes} ligações · "
+          f"{d.cobertura:.0%} das frases aproveitadas · "
+          f"sequência de {sequencia} passos")
     if d.alvos.tema:
-        print(f"tema identificado: {d.exibir(d.alvos.tema)} (do {d.alvos.origem_do_tema})")
+        print(f"ideia central: {d.exibir(d.alvos.tema)} "
+              f"(a partir do {d.alvos.origem_do_tema})")
     print()
 
     for achado in d.achados:
@@ -437,9 +476,11 @@ def _main(argv: list[str]) -> int:
             print(f"                  · {recorte}")
         print()
 
-    conclusivos = len(d.conclusivos)
-    print(f"{conclusivos} de {len(d.achados)} achados são conclusivos; "
-          f"o restante depende de modelagem que esta versão não sustenta.")
+    indefinidos = len(d.achados) - len(d.conclusivos)
+    if indefinidos:
+        print(f"{indefinidos} dos {len(d.achados)} pontos acima ficaram sem veredito: "
+              f"testamos esses indicadores em 160 redações já corrigidas")
+        print("e eles não separaram texto bom de ruim, então mostramos o número sem julgar.")
     return 0
 
 

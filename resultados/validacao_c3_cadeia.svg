@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="428" viewBox="0 0 760 428" font-family="Helvetica, Arial, sans-serif">
+<rect width="760" height="428" fill="#FCFCFB"/>
+<text x="46" y="26" font-size="15" font-weight="600" fill="#141917">A métrica separa o que a correção humana separou?</text>
+<text x="46" y="45" font-size="11.5" fill="#5A6763">comprimento da cadeia argumentativa · Competência 3 (coerência e argumentação) · corpus Essay-BR, n=160</text>
+<line x1="46" y1="158.0" x2="736" y2="158.0" stroke="#E4E8E6" stroke-width="1"/>
+<path d="M47.0,216.0 V214.2 Q47.0,210.2 51.0,210.2 H84.1 Q88.1,210.2 88.1,214.2 V216.0 Z" fill="#0F8F71"/>
+<path d="M176.4,216.0 V208.4 Q176.4,204.4 180.4,204.4 H213.5 Q217.5,204.4 217.5,208.4 V216.0 Z" fill="#0F8F71"/>
+<path d="M219.5,216.0 V191.0 Q219.5,187.0 223.5,187.0 H256.6 Q260.6,187.0 260.6,191.0 V216.0 Z" fill="#0F8F71"/>
+<path d="M262.6,216.0 V133.0 Q262.6,129.0 266.6,129.0 H299.8 Q303.8,129.0 303.8,133.0 V216.0 Z" fill="#0F8F71"/>
+<path d="M305.8,216.0 V150.4 Q305.8,146.4 309.8,146.4 H342.9 Q346.9,146.4 346.9,150.4 V216.0 Z" fill="#0F8F71"/>
+<path d="M348.9,216.0 V138.8 Q348.9,134.8 352.9,134.8 H386.0 Q390.0,134.8 390.0,138.8 V216.0 Z" fill="#0F8F71"/>
+<path d="M392.0,216.0 V150.4 Q392.0,146.4 396.0,146.4 H429.1 Q433.1,146.4 433.1,150.4 V216.0 Z" fill="#0F8F71"/>
+<path d="M435.1,216.0 V179.4 Q435.1,175.4 439.1,175.4 H472.2 Q476.2,175.4 476.2,179.4 V216.0 Z" fill="#0F8F71"/>
+<path d="M478.2,216.0 V185.2 Q478.2,181.2 482.2,181.2 H515.4 Q519.4,181.2 519.4,185.2 V216.0 Z" fill="#0F8F71"/>
+<path d="M521.4,216.0 V191.0 Q521.4,187.0 525.4,187.0 H558.5 Q562.5,187.0 562.5,191.0 V216.0 Z" fill="#0F8F71"/>
+<path d="M564.5,216.0 V214.2 Q564.5,210.2 568.5,210.2 H601.6 Q605.6,210.2 605.6,214.2 V216.0 Z" fill="#0F8F71"/>
+<line x1="46" y1="216" x2="736" y2="216" stroke="#5A6763" stroke-width="1"/>
+<text x="39" y="219.5" font-size="9.5" fill="#5A6763" text-anchor="end">0</text>
+<text x="39" y="161.5" font-size="9.5" fill="#5A6763" text-anchor="end">10</text>
+<text x="39" y="103.5" font-size="9.5" fill="#5A6763" text-anchor="end">20</text>
+<text x="46" y="92" font-size="12" font-weight="600" fill="#0F8F71">Nota alta (&#8805; 160)</text>
+<text x="736" y="92" font-size="11" fill="#5A6763" text-anchor="end">n=80 · mediana 29</text>
+<line x1="46" y1="308.0" x2="736" y2="308.0" stroke="#E4E8E6" stroke-width="1"/>
+<path d="M47.0,366.0 V346.8 Q47.0,342.8 51.0,342.8 H84.1 Q88.1,342.8 88.1,346.8 V366.0 Z" fill="#B8461F"/>
+<path d="M90.1,366.0 V358.4 Q90.1,354.4 94.1,354.4 H127.2 Q131.2,354.4 131.2,358.4 V366.0 Z" fill="#B8461F"/>
+<path d="M133.2,366.0 V323.6 Q133.2,319.6 137.2,319.6 H170.4 Q174.4,319.6 174.4,323.6 V366.0 Z" fill="#B8461F"/>
+<path d="M176.4,366.0 V300.4 Q176.4,296.4 180.4,296.4 H213.5 Q217.5,296.4 217.5,300.4 V366.0 Z" fill="#B8461F"/>
+<path d="M219.5,366.0 V254.0 Q219.5,250.0 223.5,250.0 H256.6 Q260.6,250.0 260.6,254.0 V366.0 Z" fill="#B8461F"/>
+<path d="M262.6,366.0 V323.6 Q262.6,319.6 266.6,319.6 H299.8 Q303.8,319.6 303.8,323.6 V366.0 Z" fill="#B8461F"/>
+<path d="M305.8,366.0 V329.4 Q305.8,325.4 309.8,325.4 H342.9 Q346.9,325.4 346.9,329.4 V366.0 Z" fill="#B8461F"/>
+<path d="M348.9,366.0 V335.2 Q348.9,331.2 352.9,331.2 H386.0 Q390.0,331.2 390.0,335.2 V366.0 Z" fill="#B8461F"/>
+<path d="M392.0,366.0 V323.6 Q392.0,319.6 396.0,319.6 H429.1 Q433.1,319.6 433.1,323.6 V366.0 Z" fill="#B8461F"/>
+<path d="M435.1,366.0 V358.4 Q435.1,354.4 439.1,354.4 H472.2 Q476.2,354.4 476.2,358.4 V366.0 Z" fill="#B8461F"/>
+<path d="M478.2,366.0 V358.4 Q478.2,354.4 482.2,354.4 H515.4 Q519.4,354.4 519.4,358.4 V366.0 Z" fill="#B8461F"/>
+<path d="M650.8,366.0 V364.2 Q650.8,360.2 654.8,360.2 H687.9 Q691.9,360.2 691.9,364.2 V366.0 Z" fill="#B8461F"/>
+<line x1="46" y1="366" x2="736" y2="366" stroke="#5A6763" stroke-width="1"/>
+<text x="39" y="369.5" font-size="9.5" fill="#5A6763" text-anchor="end">0</text>
+<text x="39" y="311.5" font-size="9.5" fill="#5A6763" text-anchor="end">10</text>
+<text x="39" y="253.5" font-size="9.5" fill="#5A6763" text-anchor="end">20</text>
+<text x="46" y="242" font-size="12" font-weight="600" fill="#B8461F">Nota baixa (&#8804; 80)</text>
+<text x="736" y="242" font-size="11" fill="#5A6763" text-anchor="end">n=80 · mediana 18</text>
+<line x1="272.2" y1="76" x2="272.2" y2="366" stroke="#141917" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text x="278.2" y="70" font-size="11.5" font-weight="600" fill="#141917">corte 20 &#183; 74% de acerto</text>
+<text x="46.0" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">0</text>
+<text x="159.1" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">10</text>
+<text x="272.2" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">20</text>
+<text x="385.3" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">30</text>
+<text x="498.5" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">40</text>
+<text x="611.6" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">50</text>
+<text x="724.7" y="386" font-size="10.5" fill="#5A6763" text-anchor="middle">60</text>
+<text x="380.0" y="406" font-size="11" fill="#5A6763" text-anchor="middle">comprimento da cadeia argumentativa</text>
+</svg>

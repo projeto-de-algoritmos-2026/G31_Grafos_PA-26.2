@@ -124,8 +124,11 @@ def para_dot(d: Diagnostico, *, apenas_conectados: bool = False) -> str:
 
 def legenda() -> list[tuple[str, str]]:
     """Pares (cor, significado), para a interface montar a legenda."""
+    # à esquerda a cor, à direita o que ela quer dizer para quem lê. Em termos
+    # de grafo: caminho mínimo do Dijkstra, componente fortemente conectado, e
+    # o resto dos vértices.
     return [
-        (BORDA_CAMINHO, "caminho do tema até a proposta"),
-        (BORDA_LACO, "laço argumentativo"),
-        (BORDA_NEUTRA, "demais conceitos"),
+        (BORDA_CAMINHO, "ligação entre o tema e a sua proposta"),
+        (BORDA_LACO, "argumento em círculo"),
+        (BORDA_NEUTRA, "outras ideias"),
     ]
