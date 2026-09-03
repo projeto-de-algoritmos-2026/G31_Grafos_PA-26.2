@@ -1,5 +1,4 @@
-
-
+"""Testes do laudo (src/diagnostico.py)."""
 import unittest
 
 from src import extracao as _extracao
@@ -25,6 +24,7 @@ from src.grafo import Grafo
 
 
 def _cadeia(n: int) -> Grafo:
+    """Grafo em linha com n vértices: c0 -> c1 -> ... -> c(n-1)."""
     g = Grafo()
     for i in range(n - 1):
         g.adicionar_aresta(f"c{i}", f"c{i+1}")
@@ -49,13 +49,16 @@ requer_modelo = unittest.skipUnless(
 
 
 class TestCalibragem(unittest.TestCase):
+    """Os limiares vieram de medição, não de chute."""
     def test_o_corte_medido_e_respeitado(self):
+        """CADEIA_CORTE = 20 separa os dois grupos de C3 com 74% de acerto (n=160 no Essay-BR)."""
         self.assertEqual(CADEIA_CORTE, 20)
         self.assertEqual(CADEIA_MEDIANA_BOA, 29)
         self.assertLess(CADEIA_CORTE, CADEIA_MEDIANA_BOA)
 
 
 class TestProgressao(unittest.TestCase):
+    """Competência 3 — o único indicador que vira veredito."""
     def avaliar(self, n):
         g = _cadeia(n)
         return _avaliar_progressao(g, list(g.vertices))
@@ -83,6 +86,7 @@ class TestProgressao(unittest.TestCase):
         self.assertEqual(a.status, FALHA)
 
     def test_grafo_ciclico_fica_indefinido(self):
+        """Sem condensação, o Kahn não ordena."""
         g = Grafo.de_pares([("a", "b"), ("b", "a")])
         a = _avaliar_progressao(g, None)
         self.assertEqual(a.status, INDEFINIDO)
@@ -99,6 +103,7 @@ class TestLacos(unittest.TestCase):
         self.assertIsNone(_avaliar_lacos([], _extracao_de(Grafo())))
 
     def test_laco_e_observacao_nao_alerta(self):
+        """Medido em 400 redações: ciclo aparece em 3,2% e a média de C3 desses textos é MAIOR (120."""
         a = _avaliar_lacos([["a", "b", "c"]], _extracao_de(Grafo()))
         self.assertEqual(a.status, OBSERVACAO)
         self.assertNotIn(a.status, (ATENCAO, FALHA))
@@ -127,6 +132,7 @@ class TestLacos(unittest.TestCase):
 
 
 class TestTema(unittest.TestCase):
+    """Competência 2 — calculada e mostrada, mas nunca convertida em nota."""
     def test_sem_tema_fica_indefinido(self):
         g = _cadeia(5)
         achado, orfaos = _avaliar_tema(g, Alvos(), _extracao_de(g))
@@ -134,6 +140,7 @@ class TestTema(unittest.TestCase):
         self.assertEqual(len(orfaos), 5)
 
     def test_com_tema_continua_indefinido(self):
+        """Mesmo com alcance alto: a medição não sustenta veredito aqui."""
         g = _cadeia(5)
         achado, _ = _avaliar_tema(g, Alvos(tema="c0"), _extracao_de(g))
         self.assertEqual(achado.status, INDEFINIDO)
@@ -152,12 +159,15 @@ class TestTema(unittest.TestCase):
 
 
 class TestProposta(unittest.TestCase):
+    """Competência 5 — falha só quando o achado é sobre o texto."""
     def test_sem_proposta_identificada_e_falha(self):
+        """Isto é sobre a redação, não sobre a modelagem."""
         g = _cadeia(3)
         a = _avaliar_proposta(g, Alvos(tema="c0"), None, _extracao_de(g))
         self.assertEqual(a.status, FALHA)
 
     def test_proposta_inalcancavel_fica_indefinido(self):
+        """Isto é sobre a modelagem, não sobre a redação."""
         from src.caminhos import caminho_tema_proposta
 
         g = Grafo.de_pares([("tema", "meio"), ("proposta", "outra")])
@@ -185,6 +195,7 @@ class TestProposta(unittest.TestCase):
 
 
 class TestDiagnostico(unittest.TestCase):
+    """A estrutura do laudo."""
     def setUp(self):
         self.d = Diagnostico(
             extracao=_extracao_de(_cadeia(4)),

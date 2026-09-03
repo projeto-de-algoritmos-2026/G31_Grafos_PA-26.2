@@ -1,6 +1,4 @@
-
 """Testes da extração do grafo a partir do texto (src/extracao.py)."""
-
 import unittest
 
 from src import extracao
@@ -29,7 +27,7 @@ requer_modelo = unittest.skipUnless(
 
 @requer_modelo
 class TestRegraBase(unittest.TestCase):
-
+    """Sujeito -> objeto, o caso que não depende de refinamento nenhum."""
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -56,7 +54,7 @@ class TestRegraBase(unittest.TestCase):
 
 @requer_modelo
 class TestRefinamentos(unittest.TestCase):
-
+    """Um teste para cada construção que a regra base sozinha perde."""
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -66,6 +64,7 @@ class TestRefinamentos(unittest.TestCase):
         return {(a.origem, a.destino) for a in grafo.arestas()}
 
     def test_a_substantivo_leve_desce_para_o_conceito(self):
+        """'a ausência de X' fala de X, não de ausência."""
         arestas = self.arestas(
             "A ausência de políticas públicas perpetua a marginalização."
         )
@@ -73,6 +72,7 @@ class TestRefinamentos(unittest.TestCase):
         self.assertNotIn(("ausência", "marginalização"), arestas)
 
     def test_b_oracao_relativa_resolve_o_antecedente(self):
+        """O sujeito 'que' precisa virar o substantivo que ele retoma."""
         arestas = self.arestas(
             "A carência de políticas públicas aprofunda a invisibilidade social, "
             "que retroalimenta a escassez de representatividade midiática."
@@ -83,6 +83,7 @@ class TestRefinamentos(unittest.TestCase):
         )
 
     def test_c_aposto_entre_virgulas_nao_apaga_o_sujeito(self):
+        """'X, por sua vez, faz Y' — a interrupção confunde o parser."""
         arestas = self.arestas(
             "O preconceito estrutural, por sua vez, desestimula a criação "
             "de políticas públicas."
@@ -97,6 +98,7 @@ class TestRefinamentos(unittest.TestCase):
         self.assertIn(("desigualdade", "violência urbano"), arestas)
 
     def test_e_verbo_subordinado_herda_o_sujeito(self):
+        """A proposta de intervenção: sujeito no auxiliar, objeto no xcomp."""
         arestas = self.arestas(
             "O Ministério da Educação deve promover a demarcação de territórios."
         )
@@ -111,6 +113,7 @@ class TestFiltros(unittest.TestCase):
         cls.extrator = Extrator()
 
     def test_locucao_adverbial_nao_vira_conceito(self):
+        """'dessa forma' não é um conceito da argumentação."""
         grafo = self.extrator.extrair(
             "Dessa forma, a desigualdade compromete a cidadania."
         ).grafo
@@ -125,6 +128,7 @@ class TestFiltros(unittest.TestCase):
             self.assertNotIn(vertice.split()[0], SUBSTANTIVOS_VAZIOS)
 
     def test_nao_cria_lacos(self):
+        """O Grafo rejeita laços; a extração precisa filtrá-los antes."""
         texto = (
             "A identidade cultural sustenta a identidade cultural das comunidades. "
             "A pobreza gera pobreza."
@@ -175,7 +179,7 @@ class TestRastreabilidadeECobertura(unittest.TestCase):
 
 @requer_modelo
 class TestRotulos(unittest.TestCase):
-
+    """A chave canônica agrupa; o rótulo de exibição é o que o usuário lê."""
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -189,6 +193,7 @@ class TestRotulos(unittest.TestCase):
         self.assertEqual(len(chaves), 1, f"conceitos não agruparam: {chaves}")
 
     def test_exibicao_corrige_a_concordancia_do_lema(self):
+        """O lema do adjetivo vem no masculino: 'política público'."""
         resultado = self.extrator.extrair(
             "As políticas públicas reduzem a exclusão."
         )
@@ -206,6 +211,7 @@ class TestVocabulario(unittest.TestCase):
             self.assertIn(polaridade, (-1, 0, 1), f"polaridade inválida em {palavra}")
 
     def test_listas_nao_se_sobrepoem(self):
+        """Um substantivo é leve ou vazio, nunca os dois."""
         self.assertEqual(set(SUBSTANTIVOS_LEVES) & SUBSTANTIVOS_VAZIOS, set())
 
 

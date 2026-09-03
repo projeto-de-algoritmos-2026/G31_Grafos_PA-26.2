@@ -1,3 +1,25 @@
+# Extração de conceitos e relações a partir do texto.
+#
+# A versão é fixa de propósito. Com `spacy>=3.7` o pip podia resolver para
+# o spaCy 3.7, que traz o thinc 8.2 — compilado contra o numpy 1.x — e
+# instalar o numpy 2 ao lado. A combinação quebra na importação, com
+# "ImportError: DLL load failed while importing numpy_ops". O spaCy 3.8
+# traz o thinc 8.3, que já é compatível com o numpy 2.
 spacy==3.8.16
 numpy==2.2.6
+
+# Interface do aplicativo
 streamlit==1.37.0
+
+# O grafo é desenhado gerando DOT à mão (src/visualizacao.py), que o
+# Streamlit renderiza com st.graphviz_chart. Não há biblioteca de grafos
+# no projeto — nem como dependência transitiva.
+#
+# O corpus é lido com o módulo `csv` da biblioteca padrão (src/corpus.py),
+# então também não há pandas aqui.
+
+# Modelo de língua portuguesa (instalar depois do spacy):
+#   python -m spacy download pt_core_news_sm
+#
+# O modelo _sm não tem vetores de palavra, e não precisa ter: o projeto
+# usa apenas a análise sintática de dependências.
