@@ -1,74 +1,4 @@
-"""
-Diagnóstico da redação: onde os algoritmos viram avaliação.
-
-Este módulo é a junção do projeto. Recebe o texto de uma redação e devolve
-um laudo estruturado, atravessando o pipeline inteiro:
-
-    texto
-      -> extracao.py   grafo direcionado de conceitos
-      -> alvos.py      qual conceito é o tema, quais são a proposta
-      -> analise.py    Tarjan (laços) e Kahn (cadeia argumentativa)
-      -> caminhos.py   Dijkstra a partir do tema
-      -> aqui          tudo isso traduzido para as competências do ENEM
-
-A tradução é o ponto do trabalho. Um componente fortemente conectado não
-diz nada a um estudante; "estes três conceitos se justificam em círculo,
-olha as frases" diz.
-
-O QUE ESTE MÓDULO AFIRMA E O QUE NÃO AFIRMA
--------------------------------------------
-Cada veredito abaixo foi calibrado contra o corpus Essay-BR, e o módulo só
-emite juízo onde a medição sustenta:
-
-    ok          nada a apontar
-    atencao     há indício, mas a decisão é de quem escreveu
-    falha       problema objetivo na estrutura do texto
-    observacao  fato sobre o texto que não é elogio nem alerta
-    indefinido  a modelagem atual não permite concluir
-
-O `indefinido` não é evasiva, é resultado. Medimos, no corpus:
-
-  * COMPETÊNCIA 3 — a cadeia argumentativa FUNCIONA como indicador.
-    Redações bem avaliadas em coerência têm mediana de 29 conceitos
-    encadeados; as mal avaliadas, 18. Um corte simples em 20 conceitos
-    separa os dois grupos com 74% de acerto (n=160).
-
-  * COMPETÊNCIAS 2 e 5 — NÃO funcionam com esta modelagem. O grafo de uma
-    redação fica fragmentado em ~6 componentes, e o maior deles segura só
-    um terço dos conceitos, porque relações causais expressas dentro de
-    frases isoladas não encadeiam um texto inteiro. Consequência: o caminho
-    do tema até a proposta quase nunca existe — e, quando existe, aparece
-    MAIS nas redações mal avaliadas em C5 (23%) do que nas bem avaliadas
-    (12%). A métrica estava medindo fragmentação, não qualidade.
-
-    Duas tentativas de correção foram medidas e descartadas: arestas por
-    conectivo discursivo e vértices menos específicos levaram o maior
-    componente de 28% para 34% dos conceitos, o que não muda a conclusão.
-
-    Por isso o módulo continua CALCULANDO e MOSTRANDO o caminho tema →
-    proposta, que é informativo quando existe, mas não o converte em nota.
-
-O QUE MEDIMOS SOBRE OS CICLOS
-----------------------------
-Em 400 redações do corpus, ciclo aparece em 3,2% (13 casos). Dessas 13, a
-média de Competência 3 é 120, contra 113 nas 387 sem ciclo — ou seja,
-levemente MELHOR, o contrário da hipótese inicial. E 8 dos 13 ciclos têm
-apenas dois conceitos, o que costuma ser relação mútua legítima ("a pobreza
-compromete a educação, e a falta de educação perpetua a pobreza"), não
-falácia.
-
-Conclusão: ciclo é `observacao`, não `atencao`. Marcar com alerta seria
-inventar um problema que a medição não encontrou.
-
-O PAPEL DO TARJAN, ENTÃO
-------------------------
-Não é pontuar. É garantir que o indicador de Competência 3 funcione em
-TODA redação: sem a condensação dos componentes, o Kahn não ordena grafo
-cíclico, e 3,2% dos textos perderiam o único diagnóstico que a validação
-sustenta. O SCC é a camada de robustez do indicador principal — que é
-exatamente o papel dele no Cormen, cap. 22.5.
-"""
-
+"""Diagnóstico da redação: onde os algoritmos viram avaliação."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -83,22 +13,16 @@ OK = "ok"
 ATENCAO = "atencao"
 FALHA = "falha"
 INDEFINIDO = "indefinido"
-#: fato sobre o texto, sem juízo — nem elogio nem alerta
 OBSERVACAO = "observacao"
 
-#: Corte que melhor separa os dois grupos de Competência 3 no Essay-BR:
-#: 74% de acerto sobre 160 redações (80 com C3 >= 160, 80 com C3 <= 80).
 CADEIA_CORTE = 20
 
-#: Mediana da cadeia nas redações bem avaliadas em C3. Serve de referência
-#: para o texto do laudo, não de limiar.
 CADEIA_MEDIANA_BOA = 29
 
 
 @dataclass
 class Achado:
     """Uma constatação sobre uma competência, com o que a sustenta."""
-
     competencia: int
     nome: str
     status: str
@@ -110,7 +34,7 @@ class Achado:
         """Falso quando a modelagem não permite emitir juízo."""
         return self.status != INDEFINIDO
 
-    def __str__(self) -> str:  # pragma: no cover - only for debugging
+    def __str__(self) -> str:
         marca = {OK: "[ok]", ATENCAO: "[atencao]", FALHA: "[falha]",
                  OBSERVACAO: "[observacao]", INDEFINIDO: "[indefinido]"}[self.status]
         return f"{marca} C{self.competencia} {self.nome} — {self.resumo}"
@@ -119,7 +43,6 @@ class Achado:
 @dataclass
 class Diagnostico:
     """O laudo completo de uma redação."""
-
     extracao: Extracao
     alvos: Alvos
     lacos: list[list[str]] = field(default_factory=list)
@@ -127,8 +50,6 @@ class Diagnostico:
     caminho: ResultadoTemaProposta | None = None
     orfaos: list[str] = field(default_factory=list)
     achados: list[Achado] = field(default_factory=list)
-
-    # -- atalhos -----------------------------------------------------------
 
     @property
     def grafo(self) -> Grafo:
@@ -181,21 +102,8 @@ class Diagnostico:
         return "\n".join(linhas)
 
 
-# ---------------------------------------------------------------------------
-# Competência 3 — o indicador validado
-#
-# LINGUAGEM: os textos daqui aparecem na tela para quem escreveu a redação,
-# não para quem escreveu o código. Por isso "sequência de ideias" e não
-# "ordenação topológica", "argumento em círculo" e não "componente
-# fortemente conectado". O termo técnico fica no comentário ao lado.
-# ---------------------------------------------------------------------------
-
 def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
-    """
-    Comprimento da ordenação topológica — o único indicador que a medição
-    sustenta: distingue redações bem e mal avaliadas em coerência com 74%
-    de acerto no corpus (n=160).
-    """
+    """Comprimento da ordenação topológica — o único indicador que a medição sustenta: distingue."""
     nome = "encadeamento das ideias"
 
     if not grafo.num_vertices:
@@ -205,8 +113,6 @@ def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
             "colado por inteiro",
         )
 
-    # cadeia is None = o Kahn não ordena grafo com ciclo; a condensação dos
-    # componentes fortemente conectados resolveria
     if cadeia is None:
         return Achado(
             3, nome, INDEFINIDO,
@@ -238,13 +144,7 @@ def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
 
 
 def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
-    """
-    Componentes fortemente conectados com mais de um vértice (Tarjan).
-
-    `observacao`, nunca `atencao`: ver a medição no topo do módulo — ciclo
-    não se correlacionou com coerência pior, e a maioria tem dois conceitos,
-    o que é relação mútua e não falácia.
-    """
+    """Componentes fortemente conectados com mais de um vértice (Tarjan)."""
     if not lacos:
         return None
 
@@ -261,18 +161,8 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
     )
 
 
-# ---------------------------------------------------------------------------
-# Competências 2 e 5 — calculadas e mostradas, sem virar juízo
-# ---------------------------------------------------------------------------
-
 def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achado, list[str]]:
-    """
-    Alcance do conceito-tema (Dijkstra a partir dele).
-
-    Fica `indefinido` porque a fragmentação do grafo limita o alcance a
-    cerca de um terço dos vértices mesmo em redação boa — o número não
-    discrimina.
-    """
+    """Alcance do conceito-tema (Dijkstra a partir dele)."""
     nome = "ligação com o tema"
 
     if alvos.tema is None:
@@ -285,7 +175,7 @@ def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achad
             list(grafo.vertices),
         )
 
-    alcancadas = orbita(grafo, alvos.tema)  # distâncias a partir do tema
+    alcancadas = orbita(grafo, alvos.tema)
     soltas = [v for v in grafo.vertices if v not in alcancadas]
 
     return (
@@ -304,13 +194,7 @@ def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achad
 def _avaliar_proposta(
     grafo: Grafo, alvos: Alvos, caminho: ResultadoTemaProposta | None, extracao: Extracao
 ) -> Achado:
-    """
-    Caminho mínimo (Dijkstra) do conceito-tema até os conceitos da proposta.
-
-    Não achar proposta é achado sobre o TEXTO, e vale como falha. Não achar
-    caminho é, na maioria dos casos, limitação da modelagem — fica
-    `indefinido`.
-    """
+    """Caminho mínimo (Dijkstra) do conceito-tema até os conceitos da proposta."""
     nome = "proposta de intervenção"
 
     if not alvos.propostas:
@@ -338,9 +222,6 @@ def _avaliar_proposta(
                     f"{extracao.exibir(origem)} → {extracao.exibir(destino)}: {frases[0]}"
                 )
 
-    # Reportar só a proposta mais próxima infla o resultado: bastaria UMA ideia
-    # do fecho estar ligada ao tema para o laudo soar aprovado. O denominador
-    # tem que aparecer.
     total = len(caminho.custos_por_proposta) or 1
     ligadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
     status = OK if ligadas == total else ATENCAO
@@ -362,10 +243,6 @@ def _avaliar_proposta(
     return Achado(5, nome, status, detalhe, evidencias)
 
 
-# ---------------------------------------------------------------------------
-# Orquestração
-# ---------------------------------------------------------------------------
-
 def diagnosticar(
     texto: str,
     *,
@@ -373,16 +250,7 @@ def diagnosticar(
     enunciado: str = "",
     extrator: Extrator | None = None,
 ) -> Diagnostico:
-    """
-    Analisa uma redação de ponta a ponta.
-
-    `titulo` e `enunciado` ajudam a achar o conceito-tema; sem eles, o
-    primeiro parágrafo é o recuo. A conclusão é sempre o último parágrafo —
-    é a estrutura obrigatória do gênero que torna isso confiável.
-
-    Passar um `extrator` já construído evita recarregar o modelo do spaCy a
-    cada redação, o que importa ao rodar sobre o corpus inteiro.
-    """
+    """Analisa uma redação de ponta a ponta."""
     extrator = extrator or Extrator()
     extracao = extrator.extrair(texto)
     grafo = extracao.grafo
@@ -424,13 +292,6 @@ def diagnosticar(
     )
 
 
-# ---------------------------------------------------------------------------
-# Execução direta, para inspecionar o laudo de um texto
-#
-#     python -m src.diagnostico data/exemplo_sintetico_com_laco.txt
-#     python -m src.diagnostico data/exemplo_sintetico_com_laco.txt "Título da redação"
-# ---------------------------------------------------------------------------
-
 _MARCAS = {
     OK: "[ ok         ]",
     ATENCAO: "[ atencao    ]",
@@ -458,7 +319,6 @@ def _main(argv: list[str]) -> int:
 
     d = diagnosticar(texto, titulo=titulo)
 
-    # vértices · arestas · cobertura da extração · comprimento da ordenação
     sequencia = "—" if d.cadeia is None else str(d.tamanho_da_cadeia)
     print(f"{d.num_conceitos} ideias · {d.num_relacoes} ligações · "
           f"{d.cobertura:.0%} das frases aproveitadas · "
@@ -484,7 +344,7 @@ def _main(argv: list[str]) -> int:
     return 0
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     import sys
 
     raise SystemExit(_main(sys.argv))

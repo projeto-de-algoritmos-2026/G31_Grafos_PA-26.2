@@ -21,11 +21,7 @@ class TestDijkstra(unittest.TestCase):
             self.assertAlmostEqual(distancias[v], esperado, places=6)
 
     def test_ignora_caminho_ganancioso(self):
-        """
-        s -> b direto custa 1.00; s -> a -> b custa 0.75. Um Dijkstra que
-        não relaxa arestas corretamente (ou processa na ordem errada)
-        ficaria preso no caminho guloso e erraria esse valor.
-        """
+        """s -> b direto custa 1.00; s -> a -> b custa 0.75."""
         distancias, _ = dijkstra(ex.pesos_dijkstra(), "s")
         self.assertAlmostEqual(distancias["b"], 0.75, places=6)
 
@@ -107,7 +103,6 @@ class TestCaminhoTemaProposta(unittest.TestCase):
 
     def test_com_varias_propostas_escolhe_a_mais_barata(self):
         g = ex.pesos_dijkstra()
-        # "c" custa 1.0 a partir de "s"; "d" custa 1.5. A mais barata é "c".
         resultado = caminho_tema_proposta(g, tema="s", propostas=["d", "c"])
 
         self.assertEqual(resultado.melhor_proposta, "c")

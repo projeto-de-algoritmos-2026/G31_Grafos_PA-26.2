@@ -19,11 +19,26 @@ Ela contém, de propósito:
   (substantivo leve, oração relativa, aposto entre vírgulas, coordenação,
   verbo subordinado).
 
-Extração atual: 19 conceitos, 17 arestas, cobertura de 91% das frases.
+Extração atual: **20 conceitos, 20 relações, 91% das frases aproveitadas
+(10 de 11)**. Para reproduzir:
+
+```bash
+python -m src.extracao data/exemplo_sintetico_com_laco.txt
+```
+
+Como o laço é proposital, este exemplo **não** produz a sequência de ideias: o
+Kahn não ordena grafo com ciclo, e o laudo devolve "não sabemos avaliar" na
+Competência 3. Isso é esperado enquanto a condensação dos componentes não
+entrar no caminho do cálculo.
 
 ## Corpus real
 
-As redações reais entram aqui na etapa de validação (03/09), separadas em
-dois grupos — nota 1000 e com falha estrutural — para comparar as métricas
-entre eles. Arquivos brutos não versionados ficam em `data/raw/`, que está
-no `.gitignore`.
+A validação usa o [Essay-BR](https://github.com/rafaelanchieta/essay) — 4.570
+redações de estudantes do ensino médio, com nota por competência. Os grupos
+comparados são os extremos de uma competência (por exemplo, C3 ≥ 160 contra
+C3 ≤ 80), amostrados com semente fixa para os números do README serem
+reproduzíveis.
+
+Os arquivos brutos ficam em `data/raw/`, que está no `.gitignore` — o corpus
+não é versionado aqui. Rodar `python validacao.py` sem ele imprime os
+comandos de download.

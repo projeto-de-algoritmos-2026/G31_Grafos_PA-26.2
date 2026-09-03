@@ -27,7 +27,7 @@ Testamos a hipótese contra 160 redações já corrigidas por humanos. **Ela se 
 
 **Pesos** são o inverso da frequência da relação. Uma relação afirmada três vezes ao longo do texto está bem sustentada e é barata de percorrer; uma mencionada de passagem é cara. O caminho mínimo passa a ser o **argumento mais bem sustentado**, não apenas o mais curto em número de saltos. Como a frequência é sempre ≥ 1, os pesos ficam em (0, 1] — positivos, condição de validade do Dijkstra.
 
-A extração aplica sete refinamentos sobre a regra base, cada um motivado por uma construção do português que a regra ingênua perde (substantivo leve, oração relativa, aposto entre vírgulas, coordenação, verbo subordinado, verbo mal etiquetado, coesão entre frases). Estão documentados em `src/extracao.py`, com o efeito medido de cada um.
+A extração aplica sete refinamentos sobre a regra base, cada um motivado por uma construção do português que a regra ingênua perde (substantivo leve, oração relativa, aposto entre vírgulas, coordenação, verbo subordinado, verbo mal etiquetado, coesão entre frases). Cada um está implementado em `src/extracao.py` e coberto por testes em `tests/test_extracao.py`.
 
 ## Algoritmos implementados
 
@@ -93,12 +93,19 @@ Esses dois achados mudam o papel do Tarjan no projeto: ele não pontua o texto, 
 
 ## Instalação
 
+Requer **Python 3.10 a 3.13** (testado em 3.10 e 3.11). Todos os comandos
+abaixo rodam a partir da raiz do repositório.
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python -m spacy download pt_core_news_sm
 ```
+
+As versões no `requirements.txt` são fixas: o spaCy 3.7 traz o `thinc` 8.2,
+compilado contra o numpy 1.x, e a instalação quebra com `ImportError: DLL
+load failed while importing numpy_ops` se o numpy 2 entrar junto.
 
 ## Uso
 
@@ -120,12 +127,16 @@ Extração do grafo, para inspeção:
 python -m src.extracao data/exemplo_sintetico_com_laco.txt
 ```
 
-Validação no corpus (requer o Essay-BR baixado — instruções em `src/corpus.py`):
+Validação no corpus:
 
 ```bash
 python validacao.py                     # Competência 3, métrica padrão
 python validacao.py --competencia 5     # a competência que não se sustenta
 ```
+
+Este é o único comando que precisa do corpus baixado. Se ele não estiver em
+`data/raw/`, o script para e imprime os comandos de download — não é preciso
+procurar em lugar nenhum.
 
 ## Testes
 

@@ -1,29 +1,9 @@
-"""
-Grafos pequenos com resposta conhecida.
-
-Servem de base para os testes de TODOS os algoritmos do projeto: a resposta
-correta é conhecida de antemão (ou vem direto do Cormen), então quando um
-teste falha o problema está no algoritmo, nunca na expectativa.
-
-A trilha de algoritmos trabalha em cima destes grafos enquanto a extração
-de texto ainda não está pronta — é o que permite as duas frentes andarem
-em paralelo sem bloqueio.
-"""
-
+"""Grafos pequenos com resposta conhecida."""
 from src.grafo import Grafo
 
 
-# ---------------------------------------------------------------------------
-# 1. DAG simples
-# ---------------------------------------------------------------------------
-
 def dag_simples() -> Grafo:
-    """
-        a -> b -> c
-        a ------> c
-
-    Sem ciclos. Toda ordem topológica válida começa em 'a' e termina em 'c'.
-    """
+    """a -> b -> c a ------> c Sem ciclos."""
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("a", "c")])
 
 
@@ -31,18 +11,8 @@ DAG_SIMPLES_SCCS = [{"a"}, {"b"}, {"c"}]
 DAG_SIMPLES_ORDEM = ["a", "b", "c"]
 
 
-# ---------------------------------------------------------------------------
-# 2. Ciclo único
-# ---------------------------------------------------------------------------
-
 def com_ciclo() -> Grafo:
-    """
-        a -> b -> c -> a
-                  c -> d
-
-    Um componente fortemente conectado {a, b, c} e um vértice solto {d}.
-    É o caso mínimo de "argumentação circular" no domínio da redação.
-    """
+    """a -> b -> c -> a c -> d Um componente fortemente conectado {a, b, c} e um vértice solto {d}."""
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("c", "a"), ("c", "d")])
 
 
@@ -50,19 +20,8 @@ COM_CICLO_SCCS = [{"a", "b", "c"}, {"d"}]
 COM_CICLO_ORDEM_CONDENSADA = [{"a", "b", "c"}, {"d"}]
 
 
-# ---------------------------------------------------------------------------
-# 3. Cormen, figura 22.9 — o exemplo canônico de SCC
-# ---------------------------------------------------------------------------
-
 def cormen_22_9() -> Grafo:
-    """
-    Grafo da figura 22.9 do Cormen (3ª edição), capítulo 22.
-
-    Diferença: o laço h -> h do livro foi omitido, porque a nossa classe
-    Grafo rejeita laços por decisão de modelagem (um conceito não justifica
-    a si mesmo). Isso não altera os componentes — {h} é unitário de todo
-    jeito.
-    """
+    """Grafo da figura 22.9 do Cormen (3ª edição), capítulo 22."""
     return Grafo.de_pares([
         ("a", "b"),
         ("b", "c"), ("b", "e"), ("b", "f"),
@@ -77,24 +36,8 @@ def cormen_22_9() -> Grafo:
 CORMEN_SCCS = [{"a", "b", "e"}, {"c", "d"}, {"f", "g"}, {"h"}]
 
 
-# ---------------------------------------------------------------------------
-# 4. Grafo com pesos, para Dijkstra
-# ---------------------------------------------------------------------------
-
 def pesos_dijkstra() -> Grafo:
-    """
-    Pesos são 1/frequência, então a frequência é que é declarada aqui.
-
-        s -> a   freq 4   peso 0.25
-        s -> b   freq 1   peso 1.00
-        a -> b   freq 2   peso 0.50
-        a -> c   freq 1   peso 1.00
-        b -> c   freq 4   peso 0.25
-        c -> d   freq 2   peso 0.50
-
-    O caminho ganancioso s -> b (1.00) é pior que s -> a -> b (0.75):
-    o teste pega qualquer implementação que esqueça de relaxar arestas.
-    """
+    """Pesos são 1/frequência, então a frequência é que é declarada aqui."""
     g = Grafo()
     for u, v, freq in [
         ("s", "a", 4),
@@ -113,20 +56,8 @@ PESOS_DISTANCIAS = {"s": 0.0, "a": 0.25, "b": 0.75, "c": 1.0, "d": 1.5}
 PESOS_CAMINHO_ATE_D = ["s", "a", "b", "c", "d"]
 
 
-# ---------------------------------------------------------------------------
-# 5. Grafo desconexo
-# ---------------------------------------------------------------------------
-
 def desconexo() -> Grafo:
-    """
-        tema -> argumento
-
-        proposta -> acao        (ilha separada)
-
-    Modela a falha da Competência 5: a proposta de intervenção não é
-    alcançável a partir do tema. O Dijkstra deve devolver distância
-    infinita, sem quebrar.
-    """
+    """tema -> argumento proposta -> acao (ilha separada) Modela a falha da Competência 5: a proposta."""
     return Grafo.de_pares([
         ("tema", "argumento"),
         ("proposta", "acao"),

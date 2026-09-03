@@ -1,11 +1,4 @@
-"""
-Testes do desenho do grafo (src/visualizacao.py).
-
-Gerar DOT é função pura: entra um diagnóstico, sai uma string. Dá para
-testar tudo sem spaCy e sem subir o Streamlit, que é justamente a razão de
-a geração viver aqui e não dentro do `app.py`.
-"""
-
+"""Testes do desenho do grafo (src/visualizacao.py)."""
 import unittest
 
 from src.alvos import Alvos

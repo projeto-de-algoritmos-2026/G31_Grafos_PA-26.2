@@ -1,12 +1,4 @@
-"""
-Testes do carregamento do corpus (src/corpus.py).
-
-O corpus fica em `data/raw/`, que está no .gitignore, então um clone novo
-não o tem. Os testes que dependem dele são pulados automaticamente; os que
-testam a lógica de parsing e seleção rodam sempre, sobre redações
-construídas à mão.
-"""
-
+"""Testes do carregamento do corpus (src/corpus.py)."""
 import unittest
 
 from src import corpus
@@ -14,12 +6,7 @@ from src.corpus import COMPETENCIAS, Redacao, amostra, carregar, estatisticas, f
 
 
 def _redacao(indice=0, notas=(160, 160, 120, 120, 120), tema_id=1, paragrafos=None) -> Redacao:
-    """Redação de teste, sem depender do corpus em disco.
-
-    `paragrafos=()` significa redação sem parágrafo nenhum e precisa ser
-    respeitado — por isso a comparação é com None, e não um `or`, que
-    trataria a tupla vazia como ausência de argumento.
-    """
+    """Redação de teste, sem depender do corpus em disco."""
     if paragrafos is None:
         paragrafos = ("Primeiro parágrafo.", "Meio.", "Conclusão com proposta.")
     return Redacao(
@@ -44,7 +31,6 @@ requer_corpus = unittest.skipUnless(
 
 class TestRedacao(unittest.TestCase):
     """Testes que não tocam o disco."""
-
     def test_texto_junta_os_paragrafos(self):
         r = _redacao(paragrafos=("Um.", "Dois."))
         self.assertEqual(r.texto, "Um.\n\nDois.")
@@ -83,7 +69,6 @@ class TestRedacao(unittest.TestCase):
 
 class TestParsingDeListas(unittest.TestCase):
     """As colunas `essay` e `competence` guardam listas serializadas."""
-
     def test_lista_serializada(self):
         self.assertEqual(corpus._como_lista("['a', 'b']"), ("a", "b"))
 
@@ -184,7 +169,6 @@ class TestSplitInvalido(unittest.TestCase):
 @requer_corpus
 class TestCorpusReal(unittest.TestCase):
     """Só rodam com o Essay-BR baixado em data/raw/."""
-
     @classmethod
     def setUpClass(cls):
         cls.redacoes = carregar()

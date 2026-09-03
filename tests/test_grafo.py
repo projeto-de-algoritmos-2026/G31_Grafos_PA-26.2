@@ -1,5 +1,4 @@
 """Testes da estrutura de dados base (src/grafo.py)."""
-
 import unittest
 
 from src.grafo import Aresta, Grafo

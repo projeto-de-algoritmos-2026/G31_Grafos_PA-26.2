@@ -32,7 +32,6 @@ def montar_redacao_com_proposta_solta() -> Grafo:
     g = Grafo()
     g.adicionar_aresta("desigualdade social", "acesso à educação",
                        "A desigualdade afeta oportunidades educacionais.")
-    # proposta não conectada a nada que venha do tema: falha da Comp. 5
     g.adicionar_aresta("política pública", "fiscalização",
                        "Políticas devem ser fiscalizadas.")
     return g
@@ -149,7 +148,6 @@ def main() -> None:
     g_ranking.adicionar_aresta("tema", "educacao inclusiva", "Educacao e importante.")
     g_ranking.adicionar_aresta("tema", "educacao inclusiva", "Muito importante mesmo.")
     g_ranking.adicionar_aresta("tema", "reforma agraria", "Reforma agraria tambem.")
-    # "reforma agraria" nao e alcancavel por essa simples construcao
     
     ranking = ranking_propostas(g_ranking, "tema", propostas)
     print("\nPropostas ordenadas por custo (viabilidade):")

@@ -1,10 +1,4 @@
-"""
-Testes da identificação de tema e proposta (src/alvos.py).
-
-Os testes de estrutura usam grafos montados à mão e rodam sempre. Os que
-precisam interpretar texto são pulados sem o modelo do spaCy instalado.
-"""
-
+"""Testes da identificação de tema e proposta (src/alvos.py)."""
 import unittest
 
 from src import extracao
@@ -53,7 +47,6 @@ class TestAlvos(unittest.TestCase):
 
 class TestCasamento(unittest.TestCase):
     """O adjetivo varia; o núcleo nominal é a parte estável."""
-
     def setUp(self):
         self.grafo = Grafo.de_pares([
             ("comunidade tradicional", "invisibilidade social"),

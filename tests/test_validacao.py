@@ -1,12 +1,4 @@
-"""
-Testes da validação (validacao.py).
-
-A estatística e o desenho são funções puras — recebem listas de números,
-devolvem números e uma string SVG. Testáveis sem corpus e sem spaCy, que é
-o que permite verificar a lógica do resultado sem esperar três minutos de
-processamento de texto.
-"""
-
+"""Testes da validação (validacao.py)."""
 import unittest
 
 from validacao import Grupo, grafico_svg, melhor_corte, tabela_markdown
@@ -23,8 +15,8 @@ class TestGrupo(unittest.TestCase):
     def test_quartis(self):
         """Quartil por posição (nearest-rank), não interpolado."""
         g = Grupo("teste", list(range(1, 101)))
-        self.assertEqual(g.quartil(0.25), 25.0)   # ordenados[int(.25 * 99)]
-        self.assertEqual(g.mediana, 50.5)         # statistics.median interpola
+        self.assertEqual(g.quartil(0.25), 25.0)
+        self.assertEqual(g.mediana, 50.5)
         self.assertEqual(g.quartil(0.75), 75.0)
 
     def test_quartil_ignora_ordem_de_entrada(self):

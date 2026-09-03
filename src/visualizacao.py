@@ -1,32 +1,8 @@
-"""
-Desenho do grafo de conceitos, em DOT.
-
-POR QUE DOT, E NÃO UMA BIBLIOTECA DE DESENHO
---------------------------------------------
-O `requirements.txt` trazia `pyvis`, que puxa `networkx` como dependência.
-O código nunca importou `networkx` — mas afirmar no README que nenhuma
-biblioteca de grafos foi usada, e ela aparecer no `pip list`, é o tipo de
-coisa que cria dúvida onde não havia.
-
-Gerar DOT à mão resolve os dois lados: o Streamlit renderiza a string
-direto (`st.graphviz_chart`), sem dependência nova nem binário instalado,
-e a árvore de dependências do projeto deixa de conter qualquer biblioteca
-de grafos.
-
-O QUE O DESENHO MOSTRA
-----------------------
-    vermelho     conceitos que formam um laço argumentativo (Tarjan)
-    verde cheio  o caminho do tema até a proposta (Dijkstra)
-    contorno     o conceito-tema
-    espessura    frequência da relação no texto
-"""
-
+"""Desenho do grafo de conceitos, em DOT."""
 from __future__ import annotations
 
 from src.diagnostico import Diagnostico
 
-# Cores escolhidas para funcionar sobre fundo claro e escuro: preenchimento
-# suave com texto escuro, que é legível nos dois casos.
 COR_LACO = "#F6E3DD"
 BORDA_LACO = "#A8402A"
 COR_CAMINHO = "#DDEDE6"
@@ -47,14 +23,7 @@ def _espessura(frequencia: int) -> float:
 
 
 def para_dot(d: Diagnostico, *, apenas_conectados: bool = False) -> str:
-    """
-    Converte o diagnóstico em uma string DOT.
-
-    Com `apenas_conectados`, conceitos sem nenhuma relação ficam de fora.
-    Em redações reais eles são muitos, e escondê-los deixa a estrutura
-    argumentativa visível — mas o padrão é mostrar tudo, porque conceito
-    solto também é informação sobre o texto.
-    """
+    """Converte o diagnóstico em uma string DOT."""
     grafo = d.grafo
 
     em_laco = {c for laco in d.lacos for c in laco}
@@ -124,9 +93,6 @@ def para_dot(d: Diagnostico, *, apenas_conectados: bool = False) -> str:
 
 def legenda() -> list[tuple[str, str]]:
     """Pares (cor, significado), para a interface montar a legenda."""
-    # à esquerda a cor, à direita o que ela quer dizer para quem lê. Em termos
-    # de grafo: caminho mínimo do Dijkstra, componente fortemente conectado, e
-    # o resto dos vértices.
     return [
         (BORDA_CAMINHO, "ligação entre o tema e a sua proposta"),
         (BORDA_LACO, "argumento em círculo"),

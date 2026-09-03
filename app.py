@@ -1,14 +1,4 @@
-"""
-Raio-X da Redação — interface.
-
-    streamlit run app.py
-
-A tela é fina de propósito: toda a lógica está em `src/`, e este arquivo só
-pede o texto, chama `diagnosticar()` e desenha o resultado. Isso mantém o
-diagnóstico testável sem subir a interface, que é o que permite a suíte
-rodar em um segundo.
-"""
-
+"""Raio-X da Redação — interface."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -22,8 +12,6 @@ from src.visualizacao import legenda, para_dot
 
 PASTA_EXEMPLOS = Path("data")
 
-# Ícone, cor e o rótulo que o leitor vê. Internamente são
-# OK / ATENCAO / FALHA / INDEFINIDO (ver src/diagnostico.py).
 APARENCIA = {
     OK: ("✅", "#1E6E5A", "tudo certo"),
     ATENCAO: ("⚠️", "#B8860B", "vale conferir"),
@@ -90,10 +78,6 @@ def painel_de_entrada() -> tuple[str, str, str, bool, bool]:
         )
         analisar = st.button("Analisar", type="primary", use_container_width=True)
 
-    # A chave depende do exemplo escolhido de propósito. O Streamlit guarda o
-    # estado do widget por chave e IGNORA um novo `value` quando o usuário já
-    # digitou algo — então, sem isso, escolher um exemplo depois de mexer na
-    # caixa não trocaria o texto, e falharia em silêncio.
     texto = st.text_area(
         "Cole a redação aqui — separe os parágrafos com uma linha em branco",
         value=texto_inicial, height=260, key=f"redacao::{escolha}",
@@ -103,15 +87,11 @@ def painel_de_entrada() -> tuple[str, str, str, bool, bool]:
 
 def mostrar_metricas(d) -> None:
     a, b, c, e = st.columns(4)
-    # vértices do grafo
     a.metric("Ideias no texto", d.num_conceitos,
              help="Cada assunto que a redação trata, contado uma vez só.")
-    # arestas do grafo
     b.metric("Ligações", d.num_relacoes,
              help="Quantas vezes uma ideia leva a outra: \"X provoca Y\", \"X gera Y\".")
 
-    # Sem cadeia não é cadeia de tamanho zero — mostrar "0" leria como qualidade
-    # nula, quando o que houve foi o Kahn não conseguir ordenar por causa do ciclo.
     if d.cadeia is None:
         c.metric("Sequência de ideias", "—",
                  help="Não foi possível calcular: há um argumento em círculo no texto.")
@@ -119,7 +99,6 @@ def mostrar_metricas(d) -> None:
         c.metric("Sequência de ideias", d.tamanho_da_cadeia,
                  help="Quantos passos a redação encadeia, uma ideia levando à outra. "
                       "É o número que melhor prevê a nota de coerência.")
-    # cobertura da extração
     e.metric("Frases aproveitadas", f"{d.cobertura:.0%}",
              help="Das frases da redação, quantas o programa conseguiu ler como "
                   "uma ligação entre ideias.")
@@ -145,7 +124,6 @@ def mostrar_achados(d) -> None:
 
     indefinidos = len(d.achados) - len(d.conclusivos)
     if indefinidos:
-        # honestidade na interface: dizemos o que ainda não sabemos ler
         st.info(
             f"{indefinidos} dos {len(d.achados)} pontos acima estão marcados como "
             "\"não sabemos avaliar\". Isso é proposital: testamos esses indicadores em "

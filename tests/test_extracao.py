@@ -1,16 +1,4 @@
-"""
-Testes da extração do grafo a partir do texto (src/extracao.py).
-
-Os testes que dependem do spaCy são pulados automaticamente quando o
-modelo de português não está instalado, para que a suíte continue
-executável em uma máquina recém-clonada. Para rodá-los:
-
-    python -m spacy download pt_core_news_sm
-
-Cada teste de refinamento usa a frase que motivou aquele refinamento, e
-falha exatamente do jeito que a versão ingênua da extração falhava.
-"""
-
+"""Testes da extração do grafo a partir do texto (src/extracao.py)."""
 import unittest
 
 from src import extracao
@@ -40,7 +28,6 @@ requer_modelo = unittest.skipUnless(
 @requer_modelo
 class TestRegraBase(unittest.TestCase):
     """Sujeito -> objeto, o caso que não depende de refinamento nenhum."""
-
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -68,7 +55,6 @@ class TestRegraBase(unittest.TestCase):
 @requer_modelo
 class TestRefinamentos(unittest.TestCase):
     """Um teste para cada construção que a regra base sozinha perde."""
-
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -147,7 +133,7 @@ class TestFiltros(unittest.TestCase):
             "A identidade cultural sustenta a identidade cultural das comunidades. "
             "A pobreza gera pobreza."
         )
-        grafo = self.extrator.extrair(texto).grafo  # não deve levantar exceção
+        grafo = self.extrator.extrair(texto).grafo
         for aresta in grafo.arestas():
             self.assertNotEqual(aresta.origem, aresta.destino)
 
@@ -194,7 +180,6 @@ class TestRastreabilidadeECobertura(unittest.TestCase):
 @requer_modelo
 class TestRotulos(unittest.TestCase):
     """A chave canônica agrupa; o rótulo de exibição é o que o usuário lê."""
-
     @classmethod
     def setUpClass(cls):
         cls.extrator = Extrator()
@@ -221,7 +206,6 @@ class TestRotulos(unittest.TestCase):
 
 class TestVocabulario(unittest.TestCase):
     """Testes que não precisam do spaCy."""
-
     def test_polaridades_sao_validas(self):
         for palavra, polaridade in SUBSTANTIVOS_LEVES.items():
             self.assertIn(polaridade, (-1, 0, 1), f"polaridade inválida em {palavra}")
