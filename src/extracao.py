@@ -1,4 +1,4 @@
-
+"""Extração do grafo de conceitos a partir do texto da redação."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -62,7 +62,7 @@ DEP_HERANCA: frozenset[str] = frozenset({"xcomp", "ccomp", "advcl", "conj"})
 
 @dataclass
 class Extracao:
-
+    """O grafo extraído mais os números que permitem auditar a extração."""
     grafo: Grafo
     frases_totais: int = 0
     frases_produtivas: int = 0
@@ -74,6 +74,7 @@ class Extracao:
 
     @property
     def cobertura(self) -> float:
+        """Fração das frases que produziu ao menos uma aresta."""
         if self.frases_totais == 0:
             return 0.0
         return self.frases_produtivas / self.frases_totais
@@ -89,6 +90,7 @@ class Extracao:
 
 @lru_cache(maxsize=2)
 def carregar_modelo(nome: str = MODELO_PADRAO):
+    """Carrega o modelo de língua do spaCy, uma única vez por nome."""
     import spacy
 
     try:
@@ -101,6 +103,7 @@ def carregar_modelo(nome: str = MODELO_PADRAO):
 
 
 def _nucleo_semantico(token, profundidade: int = 0) -> tuple[object, int]:
+    """Refinamento (a) — substantivo leve."""
     if profundidade >= 3:
         return token, 0
 
@@ -118,6 +121,7 @@ def _nucleo_semantico(token, profundidade: int = 0) -> tuple[object, int]:
 
 
 def _resolver_pronome(token):
+    """Refinamento (b) — oração relativa."""
     if token.pos_ in POS_NOMINAL:
         return token
 
@@ -141,12 +145,14 @@ def _nominal_a_esquerda(token):
 
 
 def _e_nucleo_verbal(token) -> bool:
+    """Refinamento (f) — verbo mal etiquetado."""
     if token.pos_ in ("VERB", "AUX"):
         return True
     return any(filho.dep_ in DEP_SUJEITO for filho in token.children)
 
 
 def _sujeitos_do_verbo(verbo) -> list:
+    """Sujeitos de um verbo, com dois refinamentos."""
     sujeitos = [f for f in verbo.children if f.dep_ in DEP_SUJEITO]
 
     if not sujeitos:
@@ -162,6 +168,7 @@ def _sujeitos_do_verbo(verbo) -> list:
 
 
 def _herdar_sujeitos(verbo, saltos: int = 0) -> list:
+    """Refinamento (e) — verbo subordinado sem sujeito próprio."""
     if saltos >= 3:
         return []
     if verbo.dep_ not in DEP_HERANCA:
@@ -178,6 +185,7 @@ def _herdar_sujeitos(verbo, saltos: int = 0) -> list:
 
 
 def _expandir_coordenados(tokens) -> Iterator:
+    """Refinamento (d) — substantivos coordenados."""
     for token in tokens:
         yield token
         for filho in token.children:
@@ -196,6 +204,7 @@ def _abre_com_conectivo(frase) -> bool:
 
 
 def _rotulo(token) -> str:
+    """Nome do vértice: lema do núcleo somado ao seu primeiro adjetivo."""
     modificadores = [f.lemma_.lower() for f in token.children if f.dep_ == "amod"]
     base = token.lemma_.lower().strip()
     if modificadores:
@@ -204,6 +213,7 @@ def _rotulo(token) -> str:
 
 
 def _texto_exibicao(token) -> str:
+    """Como o conceito aparece na tela, em vez de como ele é indexado."""
     pedacos = [(token.i, token.text)]
     pedacos += [(f.i, f.text) for f in token.children if f.dep_ == "amod"]
     pedacos.sort()
@@ -221,7 +231,7 @@ def _e_conceito_valido(token, rotulo: str) -> bool:
 
 
 class Extrator:
-
+    """Transforma o texto de uma redação num grafo direcionado de conceitos."""
     def __init__(self, modelo: str = MODELO_PADRAO, nlp=None) -> None:
         self._nlp = nlp if nlp is not None else carregar_modelo(modelo)
 
@@ -256,6 +266,7 @@ class Extrator:
         return resultado
 
     def _conceito_principal(self, frase, exibicao=None) -> str | None:
+        """O conceito de que a frase fala."""
         for token in frase:
             if not _e_nucleo_verbal(token):
                 continue
@@ -295,6 +306,7 @@ class Extrator:
                     yield par
 
     def conceitos_do_texto(self, texto: str) -> list[str]:
+        """Conceitos mencionados num trecho, sem exigir estrutura de frase."""
         documento = self._nlp(texto)
         return self._rotulos(t for t in documento if t.pos_ in POS_NOMINAL)
 

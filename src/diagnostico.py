@@ -1,5 +1,4 @@
 
- 
 from __future__ import annotations
  
 from dataclasses import dataclass, field
@@ -17,15 +16,13 @@ ATENCAO = "atencao"
 FALHA = "falha"
 INDEFINIDO = "indefinido"
 OBSERVACAO = "observacao"
- 
-CADEIA_CORTE = 20
- 
+
 CADEIA_MEDIANA_BOA = 29
  
  
 @dataclass
 class Achado:
- 
+
     competencia: int
     nome: str
     status: str
@@ -35,7 +32,7 @@ class Achado:
     @property
     def conclusivo(self) -> bool:
         return self.status != INDEFINIDO
- 
+
     def __str__(self) -> str:
         marca = {OK: "[ok]", ATENCAO: "[atencao]", FALHA: "[falha]",
                  OBSERVACAO: "[observacao]", INDEFINIDO: "[indefinido]"}[self.status]
@@ -44,7 +41,7 @@ class Achado:
  
 @dataclass
 class Diagnostico:
- 
+
     extracao: Extracao
     alvos: Alvos
     lacos: list[list[str]] = field(default_factory=list)
@@ -52,9 +49,7 @@ class Diagnostico:
     caminho: ResultadoTemaProposta | None = None
     orfaos: list[str] = field(default_factory=list)
     achados: list[Achado] = field(default_factory=list)
-    condensacao: Condensacao | None = None
-    maior_caminho: list[str] | None = None
- 
+
     @property
     def grafo(self) -> Grafo:
         return self.extracao.grafo
@@ -104,9 +99,7 @@ class Diagnostico:
         ]
         linhas += [str(a) for a in self.achados]
         return "\n".join(linhas)
- 
- 
-def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
+
     nome = "encadeamento das ideias"
  
     if not grafo.num_vertices:
@@ -115,7 +108,7 @@ def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
             "não identificamos nenhuma ideia neste texto. Confira se ele foi "
             "colado por inteiro",
         )
- 
+
     if cadeia is None:
         return Achado(
             3, nome, INDEFINIDO,
@@ -147,6 +140,7 @@ def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
  
  
 def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
+
     if not lacos:
         return None
  
@@ -161,9 +155,7 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
         f"você quis descrever. Vale reler só para confirmar que foi de propósito",
         evidencias,
     )
- 
- 
-def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achado, list[str]]:
+
     nome = "ligação com o tema"
  
     if alvos.tema is None:
@@ -175,7 +167,7 @@ def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achad
             ),
             list(grafo.vertices),
         )
- 
+
     alcancadas = orbita(grafo, alvos.tema)
     soltas = [v for v in grafo.vertices if v not in alcancadas]
  
@@ -195,6 +187,7 @@ def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achad
 def _avaliar_proposta(
     grafo: Grafo, alvos: Alvos, caminho: ResultadoTemaProposta | None, extracao: Extracao
 ) -> Achado:
+
     nome = "proposta de intervenção"
  
     if not alvos.propostas:
@@ -221,7 +214,7 @@ def _avaliar_proposta(
                 evidencias.append(
                     f"{extracao.exibir(origem)} → {extracao.exibir(destino)}: {frases[0]}"
                 )
- 
+
     total = len(caminho.custos_por_proposta) or 1
     ligadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
     status = OK if ligadas == total else ATENCAO
@@ -241,8 +234,7 @@ def _avaliar_proposta(
         detalhe += f". Sem ligação com o tema: {', '.join(desligadas[:4])}"
  
     return Achado(5, nome, status, detalhe, evidencias)
- 
- 
+
 def diagnosticar(
     texto: str,
     *,
@@ -250,6 +242,7 @@ def diagnosticar(
     enunciado: str = "",
     extrator: Extrator | None = None,
 ) -> Diagnostico:
+
     extrator = extrator or Extrator()
     extracao = extrator.extrair(texto)
     grafo = extracao.grafo
@@ -294,8 +287,7 @@ def diagnosticar(
         condensacao=condensacao,
         maior_caminho=maior_caminho,
     )
- 
- 
+
 _MARCAS = {
     OK: "[ ok         ]",
     ATENCAO: "[ atencao    ]",
@@ -322,7 +314,7 @@ def _main(argv: list[str]) -> int:
         return 1
  
     d = diagnosticar(texto, titulo=titulo)
- 
+
     sequencia = "—" if d.cadeia is None else str(d.tamanho_da_cadeia)
     print(f"{d.num_conceitos} ideias · {d.num_relacoes} ligações · "
           f"{d.cobertura:.0%} das frases aproveitadas · "
@@ -346,8 +338,7 @@ def _main(argv: list[str]) -> int:
               f"testamos esses indicadores em 160 redações já corrigidas")
         print("e eles não separaram texto bom de ruim, então mostramos o número sem julgar.")
     return 0
- 
- 
+
 if __name__ == "__main__":
     import sys
  

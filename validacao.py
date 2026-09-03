@@ -1,32 +1,4 @@
-"""
-Validação: a métrica de grafo separa o que a correção humana separou?
-
-    python validacao.py                      # Competência 3, métrica padrão
-    python validacao.py --competencia 5      # outra competência
-    python validacao.py --n 120              # amostra maior
-
-A pergunta é uma só, e é falsificável: tomando redações que corretores
-humanos avaliaram bem e mal numa competência específica, uma métrica
-calculada sobre o grafo distingue os dois grupos?
-
-O script devolve o ponto de corte que melhor separa os grupos e a taxa de
-acerto desse corte. Uma taxa perto de 50% significa que a métrica não sabe
-nada — é o resultado que a gente teria que reportar se fosse o caso.
-
-TROCAR A MÉTRICA
-----------------
-A métrica é injetada, não fixa. Hoje o padrão é o comprimento da ordenação
-topológica (`cadeia_argumentativa`), que na prática mede quantos conceitos
-o texto encadeia. Quando o MAIOR CAMINHO NO DAG existir, é trocar uma
-linha em `METRICAS` e rodar de novo — os dois resultados lado a lado
-mostram se a profundidade da cadeia diz mais que o tamanho dela.
-
-REPRODUTIBILIDADE
------------------
-A amostragem tem semente fixa. Todo número que sai daqui e vai para o
-README ou para o vídeo pode ser reproduzido por quem rodar o comando.
-"""
-
+"""Validação: a métrica de grafo separa o que a correção humana separou?"""
 from __future__ import annotations
 
 import argparse
@@ -43,37 +15,22 @@ from src.grafo import Grafo
 
 PASTA_RESULTADOS = Path("resultados")
 
-#: Notas do Essay-BR são múltiplos de 40, de 0 a 200. Estes são os extremos.
 NOTA_ALTA = 160
 NOTA_BAIXA = 80
 
 
 def _tamanho_da_cadeia(grafo: Grafo) -> int:
-    """
-    Métrica padrão: quantos conceitos a ordenação topológica encadeia.
-
-    Ressalva honesta: sem ciclo, o Kahn devolve TODOS os vértices, então
-    este número é na prática o tamanho do grafo — não a profundidade da
-    cadeia causal. Ciclos são raros em redação real (1 em 180), então os
-    dois quase sempre coincidem. O maior caminho no DAG é a métrica que
-    mediria profundidade de verdade.
-    """
+    """Métrica padrão: quantos conceitos a ordenação topológica encadeia."""
     cadeia = cadeia_argumentativa(grafo)
     return len(cadeia) if cadeia else 0
 
 
-#: Métricas disponíveis. Acrescentar aqui é o único passo para validar uma
-#: métrica nova — o resto do script não muda.
 METRICAS = {
     "cadeia": ("comprimento da cadeia argumentativa", _tamanho_da_cadeia),
     "conceitos": ("número de conceitos", lambda g: g.num_vertices),
     "relacoes": ("número de relações", lambda g: g.num_arestas),
 }
 
-
-# ---------------------------------------------------------------------------
-# Estatística
-# ---------------------------------------------------------------------------
 
 @dataclass
 class Grupo:
@@ -97,13 +54,7 @@ class Grupo:
 
 
 def melhor_corte(altas: Grupo, baixas: Grupo) -> tuple[int, float]:
-    """
-    Corte que maximiza a separação, e a taxa de acerto correspondente.
-
-    Testa todos os inteiros no intervalo observado. Acerto é a fração de
-    redações classificadas do lado certo: alta com valor >= corte, baixa
-    com valor < corte. Um corte que acerta ~50% é o mesmo que jogar moeda.
-    """
+    """Corte que maximiza a separação, e a taxa de acerto correspondente."""
     todos = altas.valores + baixas.valores
     if not todos or not altas.valores or not baixas.valores:
         return 0, 0.0
@@ -119,10 +70,6 @@ def melhor_corte(altas: Grupo, baixas: Grupo) -> tuple[int, float]:
     return melhor
 
 
-# ---------------------------------------------------------------------------
-# Gráfico — SVG escrito à mão, sem dependência
-# ---------------------------------------------------------------------------
-
 COR_ALTA = "#0F8F71"
 COR_BAIXA = "#B8461F"
 FUNDO = "#FCFCFB"
@@ -131,8 +78,6 @@ TINTA_FRACA = "#5A6763"
 GRADE = "#E4E8E6"
 
 LARGURA, ALTURA = 760, 428
-# topo generoso: cabem título, subtítulo, o rótulo do corte e o da faceta,
-# em quatro linhas que não se encostam
 MARGEM = {"esq": 46, "dir": 24, "topo": 100, "base": 54}
 ALTURA_FACETA = 116
 ESPACO_FACETA = 34
@@ -166,14 +111,7 @@ def grafico_svg(
     altas: Grupo, baixas: Grupo, *, corte: int, taxa: float,
     competencia: int, metrica: str,
 ) -> str:
-    """
-    Dois histogramas empilhados, mesma escala, com o corte atravessando.
-
-    A escolha da forma é deliberada: barras sobrepostas esconderiam a
-    sobreposição entre os grupos, e é justamente ela que explica por que o
-    acerto é 74% e não 95%. Facetas separadas com eixo compartilhado
-    mostram a diferença de posição E a sobreposição ao mesmo tempo.
-    """
+    """Dois histogramas empilhados, mesma escala, com o corte atravessando."""
     todos = altas.valores + baixas.valores
     inicio = 0
     fim = max(todos) + LARGURA_BIN if todos else 40
@@ -185,7 +123,7 @@ def grafico_svg(
     largura_plot = LARGURA - MARGEM["esq"] - MARGEM["dir"]
     n_bins = len(bins_altas)
     passo = largura_plot / n_bins
-    largura_barra = max(passo - 2, 1)  # 2px de respiro entre barras
+    largura_barra = max(passo - 2, 1)
 
     def x_de(valor: float) -> float:
         return MARGEM["esq"] + (valor - inicio) / (fim - inicio) * largura_plot
@@ -210,7 +148,6 @@ def grafico_svg(
         topo = MARGEM["topo"] + i * (ALTURA_FACETA + ESPACO_FACETA)
         base = topo + ALTURA_FACETA
 
-        # grade recessiva: uma linha no meio da escala
         p.append(
             f'<line x1="{MARGEM["esq"]}" y1="{base - ALTURA_FACETA / 2:.1f}" '
             f'x2="{LARGURA - MARGEM["dir"]}" y2="{base - ALTURA_FACETA / 2:.1f}" '
@@ -228,26 +165,21 @@ def grafico_svg(
             f'<line x1="{MARGEM["esq"]}" y1="{base}" x2="{LARGURA - MARGEM["dir"]}" '
             f'y2="{base}" stroke="{TINTA_FRACA}" stroke-width="1"/>'
         )
-        # escala vertical, discreta: quantas redações cada altura representa
         for valor, y in ((0, base), (pico / 2, base - ALTURA_FACETA / 2), (pico, base - ALTURA_FACETA)):
             p.append(
                 f'<text x="{MARGEM["esq"] - 7}" y="{y + 3.5:.1f}" font-size="9.5" '
                 f'fill="{TINTA_FRACA}" text-anchor="end">{valor:.0f}</text>'
             )
-        # rótulo direto: sem caixa de legenda, cada faceta se nomeia
         p.append(
             f'<text x="{MARGEM["esq"]}" y="{topo - 8}" font-size="12" font-weight="600" '
             f'fill="{cor}">{rotulo}</text>'
         )
-        # à direita: o traço do corte é vertical e cruzaria o texto se ele
-        # ficasse ao lado do rótulo da faceta
         p.append(
             f'<text x="{LARGURA - MARGEM["dir"]}" y="{topo - 8}" font-size="11" '
             f'fill="{TINTA_FRACA}" text-anchor="end">n={grupo.n} · '
             f'mediana {grupo.mediana:.0f}</text>'
         )
 
-    # o corte atravessa as duas facetas
     x_corte = x_de(corte)
     fim_facetas = MARGEM["topo"] + 2 * ALTURA_FACETA + ESPACO_FACETA
     p.append(
@@ -259,7 +191,6 @@ def grafico_svg(
         f'font-weight="600" fill="{TINTA}">corte {corte} &#183; {taxa:.0%} de acerto</text>'
     )
 
-    # eixo x
     eixo_y = fim_facetas + 20
     for valor in range(inicio, fim + 1, 10):
         p.append(
@@ -274,10 +205,6 @@ def grafico_svg(
     p.append("</svg>")
     return "\n".join(p)
 
-
-# ---------------------------------------------------------------------------
-# Execução
-# ---------------------------------------------------------------------------
 
 def medir(redacoes: list[Redacao], metrica, extrator: Extrator) -> list[int]:
     return [metrica(extrator.extrair(r.texto).grafo) for r in redacoes]
@@ -299,7 +226,7 @@ def tabela_markdown(altas: Grupo, baixas: Grupo, corte: int, taxa: float, metric
 
 
 def _main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    ap = argparse.ArgumentParser(description=(__doc__ or "").strip())
     ap.add_argument("--competencia", type=int, default=3, choices=[1, 2, 3, 4, 5])
     ap.add_argument("--metrica", default="cadeia", choices=list(METRICAS))
     ap.add_argument("--n", type=int, default=80, help="redações por grupo")
@@ -373,5 +300,5 @@ def _main(argv: list[str]) -> int:
     return 0
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     raise SystemExit(_main(sys.argv))

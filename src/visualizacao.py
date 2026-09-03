@@ -1,9 +1,8 @@
 
- 
 from __future__ import annotations
  
 from src.diagnostico import Diagnostico
- 
+
 COR_LACO = "#F6E3DD"
 BORDA_LACO = "#A8402A"
 COR_CAMINHO = "#DDEDE6"
@@ -22,6 +21,7 @@ def _espessura(frequencia: int) -> float:
  
  
 def para_dot(d: Diagnostico, *, apenas_conectados: bool = False) -> str:
+
     grafo = d.grafo
  
     em_laco = {c for laco in d.lacos for c in laco}
@@ -141,6 +141,7 @@ def para_dot_condensado(d: Diagnostico) -> str:
  
  
 def legenda() -> list[tuple[str, str]]:
+
     return [
         (BORDA_CAMINHO, "ligação entre o tema e a sua proposta"),
         (BORDA_LACO, "argumento em círculo"),

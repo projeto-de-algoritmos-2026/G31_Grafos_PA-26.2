@@ -1,5 +1,4 @@
 
-
 from __future__ import annotations
 
 import ast
@@ -45,6 +44,7 @@ class Redacao:
 
     @property
     def conclusao(self) -> str:
+
         return self.paragrafos[-1] if self.paragrafos else ""
 
     @property
@@ -84,6 +84,7 @@ class Redacao:
 
 
 def _como_lista(bruto: str) -> tuple:
+
     try:
         valor = ast.literal_eval(bruto)
     except (ValueError, SyntaxError):
@@ -110,6 +111,7 @@ def _ler_temas(pasta: Path) -> dict[int, str]:
 
 
 def carregar(caminho: Path | str | None = None, split: str | None = None) -> list[Redacao]:
+
     pasta = Path(caminho) if caminho is not None else CAMINHO_PADRAO
 
     if split is None:
@@ -167,6 +169,7 @@ def filtrar(
     tema_id: int | None = None,
     min_paragrafos: int | None = None,
 ) -> list[Redacao]:
+
     def nota_de(r: Redacao) -> int:
         return r.competencia(competencia) if competencia else r.nota
 
@@ -183,6 +186,7 @@ def filtrar(
 
 
 def amostra(redacoes: list[Redacao], n: int, semente: int = 42) -> list[Redacao]:
+
     if n >= len(redacoes):
         return list(redacoes)
     return random.Random(semente).sample(redacoes, n)

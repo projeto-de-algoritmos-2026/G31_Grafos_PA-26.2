@@ -1,4 +1,6 @@
 
+"""Testes do carregamento do corpus (src/corpus.py)."""
+
 import unittest
 
 from src import corpus
@@ -6,6 +8,7 @@ from src.corpus import COMPETENCIAS, Redacao, amostra, carregar, estatisticas, f
 
 
 def _redacao(indice=0, notas=(160, 160, 120, 120, 120), tema_id=1, paragrafos=None) -> Redacao:
+
     if paragrafos is None:
         paragrafos = ("Primeiro parágrafo.", "Meio.", "Conclusão com proposta.")
     return Redacao(

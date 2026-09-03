@@ -35,6 +35,7 @@ class Aresta:
 
 class Grafo:
 
+
     def __init__(self) -> None:
         self._adj: dict[str, dict[str, Aresta]] = {}
 
@@ -42,6 +43,7 @@ class Grafo:
         self._adj.setdefault(v, {})
 
     def adicionar_aresta(self, u: str, v: str, frase: str | None = None) -> Aresta:
+
         if u == v:
             raise ValueError(f"laço não permitido: {u!r} -> {v!r}")
 
@@ -82,12 +84,14 @@ class Grafo:
         return self._adj.get(u, {}).get(v)
 
     def grau_entrada(self) -> dict[str, int]:
+
         graus = {v: 0 for v in self._adj}
         for aresta in self.arestas():
             graus[aresta.destino] += 1
         return graus
 
     def transposto(self) -> "Grafo":
+
         t = Grafo()
         for v in self._adj:
             t.adicionar_vertice(v)

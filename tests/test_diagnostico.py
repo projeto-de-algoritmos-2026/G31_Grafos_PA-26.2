@@ -1,4 +1,5 @@
 
+
 import unittest
 
 from src import extracao as _extracao
@@ -48,7 +49,6 @@ requer_modelo = unittest.skipUnless(
 
 
 class TestCalibragem(unittest.TestCase):
-
     def test_o_corte_medido_e_respeitado(self):
         self.assertEqual(CADEIA_CORTE, 20)
         self.assertEqual(CADEIA_MEDIANA_BOA, 29)
@@ -56,7 +56,6 @@ class TestCalibragem(unittest.TestCase):
 
 
 class TestProgressao(unittest.TestCase):
-
     def avaliar(self, n):
         g = _cadeia(n)
         return _avaliar_progressao(g, list(g.vertices))
@@ -128,7 +127,6 @@ class TestLacos(unittest.TestCase):
 
 
 class TestTema(unittest.TestCase):
-
     def test_sem_tema_fica_indefinido(self):
         g = _cadeia(5)
         achado, orfaos = _avaliar_tema(g, Alvos(), _extracao_de(g))
@@ -154,7 +152,6 @@ class TestTema(unittest.TestCase):
 
 
 class TestProposta(unittest.TestCase):
-
     def test_sem_proposta_identificada_e_falha(self):
         g = _cadeia(3)
         a = _avaliar_proposta(g, Alvos(tema="c0"), None, _extracao_de(g))
@@ -188,7 +185,6 @@ class TestProposta(unittest.TestCase):
 
 
 class TestDiagnostico(unittest.TestCase):
-
     def setUp(self):
         self.d = Diagnostico(
             extracao=_extracao_de(_cadeia(4)),

@@ -1,4 +1,6 @@
 
+"""Testes da identificação de tema e proposta (src/alvos.py)."""
+
 import unittest
 
 from src import extracao

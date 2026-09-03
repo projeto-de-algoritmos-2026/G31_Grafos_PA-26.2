@@ -1,3 +1,4 @@
+
 from __future__ import annotations
  
 import heapq
@@ -9,6 +10,7 @@ INFINITO = float("inf")
  
  
 def dijkstra(grafo: Grafo, origem: str) -> tuple[dict[str, float], dict[str, str | None]]:
+
     distancias: dict[str, float] = {}
     predecessores: dict[str, str | None] = {}
  

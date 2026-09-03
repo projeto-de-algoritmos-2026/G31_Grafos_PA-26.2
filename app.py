@@ -1,3 +1,4 @@
+
 from __future__ import annotations
  
 from pathlib import Path
@@ -10,7 +11,7 @@ from src.extracao import Extrator
 from src.visualizacao import legenda, para_dot, para_dot_condensado
  
 PASTA_EXEMPLOS = Path("data")
- 
+
 APARENCIA = {
     OK: ("", "#1E6E5A", "tudo certo"),
     ATENCAO: ("", "#B8860B", "vale conferir"),
@@ -100,7 +101,6 @@ def mostrar_metricas(d) -> None:
         c.metric("Sequência de ideias", d.tamanho_da_cadeia,
                  help="Quantos passos a redação encadeia, uma ideia levando à outra. "
                       "É o número que melhor prevê a nota de coerência.")
-
     e.metric("Frases aproveitadas", f"{d.cobertura:.0%}",
              help="Das frases da redação, quantas o programa conseguiu ler como "
                   "uma ligação entre ideias.")

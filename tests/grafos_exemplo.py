@@ -3,6 +3,7 @@ from src.grafo import Grafo
 
 
 def dag_simples() -> Grafo:
+
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("a", "c")])
 
 
@@ -11,6 +12,7 @@ DAG_SIMPLES_ORDEM = ["a", "b", "c"]
 
 
 def com_ciclo() -> Grafo:
+
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("c", "a"), ("c", "d")])
 
 
@@ -19,6 +21,7 @@ COM_CICLO_ORDEM_CONDENSADA = [{"a", "b", "c"}, {"d"}]
 
 
 def cormen_22_9() -> Grafo:
+
     return Grafo.de_pares([
         ("a", "b"),
         ("b", "c"), ("b", "e"), ("b", "f"),
@@ -34,6 +37,7 @@ CORMEN_SCCS = [{"a", "b", "e"}, {"c", "d"}, {"f", "g"}, {"h"}]
 
 
 def pesos_dijkstra() -> Grafo:
+
     g = Grafo()
     for u, v, freq in [
         ("s", "a", 4),
@@ -53,6 +57,7 @@ PESOS_CAMINHO_ATE_D = ["s", "a", "b", "c", "d"]
 
 
 def desconexo() -> Grafo:
+
     return Grafo.de_pares([
         ("tema", "argumento"),
         ("proposta", "acao"),

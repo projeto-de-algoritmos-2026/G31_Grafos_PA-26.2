@@ -1,4 +1,6 @@
 
+"""Testes da extração do grafo a partir do texto (src/extracao.py)."""
+
 import unittest
 
 from src import extracao
@@ -198,7 +200,7 @@ class TestRotulos(unittest.TestCase):
 
 
 class TestVocabulario(unittest.TestCase):
-
+    """Testes que não precisam do spaCy."""
     def test_polaridades_sao_validas(self):
         for palavra, polaridade in SUBSTANTIVOS_LEVES.items():
             self.assertIn(polaridade, (-1, 0, 1), f"polaridade inválida em {palavra}")

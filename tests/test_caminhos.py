@@ -21,6 +21,7 @@ class TestDijkstra(unittest.TestCase):
             self.assertAlmostEqual(distancias[v], esperado, places=6)
 
     def test_ignora_caminho_ganancioso(self):
+
         distancias, _ = dijkstra(ex.pesos_dijkstra(), "s")
         self.assertAlmostEqual(distancias["b"], 0.75, places=6)
 

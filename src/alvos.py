@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -47,6 +46,7 @@ def _grau_de_saida(grafo: Grafo, vertice: str) -> int:
 
 
 def _casar_com_grafo(candidato: str, grafo: Grafo) -> list[str]:
+
     if candidato in grafo:
         return [candidato]
     nucleo = candidato.split()[0]
@@ -61,6 +61,7 @@ def identificar_tema(
     enunciado: str = "",
     introducao: str = "",
 ) -> tuple[str | None, str, list[str]]:
+
     candidatos_vistos: list[str] = []
     reserva: str | None = None
     reserva_fonte = ""
@@ -92,6 +93,7 @@ def identificar_tema(
 
 
 def identificar_propostas(grafo: Grafo, extrator: Extrator, conclusao: str) -> list[str]:
+
     if not conclusao.strip():
         return []
 
