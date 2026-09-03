@@ -1,47 +1,48 @@
-
+"""Diagnóstico da redação: onde os algoritmos viram avaliação."""
 from __future__ import annotations
- 
+
 from dataclasses import dataclass, field
- 
+
 from src.alvos import Alvos, identificar
-from src.analise import (Condensacao, cadeia_argumentativa,
-                         ciclos_argumentativos, condensar, maior_caminho_dag,
-                         rastrear_caminho, tarjan)
+from src.analise import cadeia_argumentativa, ciclos_argumentativos, rastrear_caminho
 from src.caminhos import ResultadoTemaProposta, caminho_tema_proposta, orbita
 from src.extracao import Extracao, Extrator
 from src.grafo import Grafo
- 
+
 OK = "ok"
 ATENCAO = "atencao"
 FALHA = "falha"
 INDEFINIDO = "indefinido"
 OBSERVACAO = "observacao"
 
+CADEIA_CORTE = 20
+
 CADEIA_MEDIANA_BOA = 29
- 
- 
+
+
 @dataclass
 class Achado:
-
+    """Uma constatação sobre uma competência, com o que a sustenta."""
     competencia: int
     nome: str
     status: str
     resumo: str
     evidencias: list[str] = field(default_factory=list)
- 
+
     @property
     def conclusivo(self) -> bool:
+        """Falso quando a modelagem não permite emitir juízo."""
         return self.status != INDEFINIDO
 
     def __str__(self) -> str:
         marca = {OK: "[ok]", ATENCAO: "[atencao]", FALHA: "[falha]",
                  OBSERVACAO: "[observacao]", INDEFINIDO: "[indefinido]"}[self.status]
         return f"{marca} C{self.competencia} {self.nome} — {self.resumo}"
- 
- 
+
+
 @dataclass
 class Diagnostico:
-
+    """O laudo completo de uma redação."""
     extracao: Extracao
     alvos: Alvos
     lacos: list[list[str]] = field(default_factory=list)
@@ -53,45 +54,45 @@ class Diagnostico:
     @property
     def grafo(self) -> Grafo:
         return self.extracao.grafo
- 
+
     @property
     def num_conceitos(self) -> int:
         return self.grafo.num_vertices
- 
+
     @property
     def num_relacoes(self) -> int:
         return self.grafo.num_arestas
- 
+
     @property
     def cobertura(self) -> float:
+        """Fração das frases da redação que virou aresta no grafo."""
         return self.extracao.cobertura
- 
+
     @property
     def tamanho_da_cadeia(self) -> int:
         return len(self.cadeia) if self.cadeia else 0
- 
-    @property
-    def tamanho_maior_caminho(self) -> int:
-        return len(self.maior_caminho) if self.maior_caminho else 0
- 
+
     def exibir(self, chave: str) -> str:
+        """Nome legível de um conceito."""
         return self.extracao.exibir(chave)
- 
+
     def achados_de(self, competencia: int) -> list[Achado]:
         return [a for a in self.achados if a.competencia == competencia]
- 
+
     @property
     def conclusivos(self) -> list[Achado]:
+        """Só os achados que a medição sustenta."""
         return [a for a in self.achados if a.conclusivo]
- 
+
     @property
     def problemas(self) -> list[Achado]:
+        """Achados conclusivos que não são `ok`, do mais grave para o menos."""
         ordem = {FALHA: 0, ATENCAO: 1}
         return sorted(
             (a for a in self.conclusivos if a.status in ordem),
             key=lambda a: ordem[a.status],
         )
- 
+
     def resumo(self) -> str:
         linhas = [
             f"{self.num_conceitos} conceitos, {self.num_relacoes} relações, "
@@ -100,8 +101,11 @@ class Diagnostico:
         linhas += [str(a) for a in self.achados]
         return "\n".join(linhas)
 
+
+def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
+    """Comprimento da ordenação topológica — o único indicador que a medição sustenta: distingue."""
     nome = "encadeamento das ideias"
- 
+
     if not grafo.num_vertices:
         return Achado(
             3, nome, FALHA,
@@ -116,7 +120,7 @@ class Diagnostico:
             "se puxam (veja abaixo). Isso é limitação do nosso cálculo, não do seu "
             "texto",
         )
- 
+
     passos = len(cadeia)
     if passos >= CADEIA_MEDIANA_BOA:
         return Achado(
@@ -137,13 +141,13 @@ class Diagnostico:
         f"que analisamos, abaixo de {CADEIA_CORTE} costuma indicar ideias que "
         f"aparecem soltas, sem uma levar à outra",
     )
- 
- 
-def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
 
+
+def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
+    """Componentes fortemente conectados com mais de um vértice (Tarjan)."""
     if not lacos:
         return None
- 
+
     evidencias = [
         " ⇄ ".join(extracao.exibir(c) for c in laco) for laco in lacos
     ]
@@ -156,8 +160,11 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
         evidencias,
     )
 
+
+def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achado, list[str]]:
+    """Alcance do conceito-tema (Dijkstra a partir dele)."""
     nome = "ligação com o tema"
- 
+
     if alvos.tema is None:
         return (
             Achado(
@@ -170,7 +177,7 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
 
     alcancadas = orbita(grafo, alvos.tema)
     soltas = [v for v in grafo.vertices if v not in alcancadas]
- 
+
     return (
         Achado(
             2, nome, INDEFINIDO,
@@ -182,20 +189,20 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
         ),
         soltas,
     )
- 
- 
+
+
 def _avaliar_proposta(
     grafo: Grafo, alvos: Alvos, caminho: ResultadoTemaProposta | None, extracao: Extracao
 ) -> Achado:
-
+    """Caminho mínimo (Dijkstra) do conceito-tema até os conceitos da proposta."""
     nome = "proposta de intervenção"
- 
+
     if not alvos.propostas:
         return Achado(
             5, nome, FALHA,
             "não encontramos uma proposta de intervenção no último parágrafo",
         )
- 
+
     if caminho is None or not caminho.alcancavel:
         return Achado(
             5, nome, INDEFINIDO,
@@ -203,10 +210,10 @@ def _avaliar_proposta(
             "Na maioria das redações isso é limitação da nossa análise, e não do texto",
             [extracao.exibir(p) for p in alvos.propostas[:4]],
         )
- 
+
     conceitos = [extracao.exibir(c) for c in (caminho.caminho or [])]
     evidencias = [" → ".join(conceitos)] if conceitos else []
- 
+
     if caminho.caminho and len(caminho.caminho) > 1:
         rastro = rastrear_caminho(grafo, caminho.caminho)
         for origem, destino, frases in rastro.arestas_frases:
@@ -218,7 +225,7 @@ def _avaliar_proposta(
     total = len(caminho.custos_por_proposta) or 1
     ligadas = sum(1 for c in caminho.custos_por_proposta.values() if c < float("inf"))
     status = OK if ligadas == total else ATENCAO
- 
+
     passos = max(len(conceitos) - 1, 0)
     detalhe = (
         f"{ligadas} de {total} ideia(s) da sua proposta se ligam ao tema. A mais "
@@ -232,8 +239,9 @@ def _avaliar_proposta(
             if c == float("inf")
         ]
         detalhe += f". Sem ligação com o tema: {', '.join(desligadas[:4])}"
- 
+
     return Achado(5, nome, status, detalhe, evidencias)
+
 
 def diagnosticar(
     texto: str,
@@ -242,40 +250,37 @@ def diagnosticar(
     enunciado: str = "",
     extrator: Extrator | None = None,
 ) -> Diagnostico:
-
+    """Analisa uma redação de ponta a ponta."""
     extrator = extrator or Extrator()
     extracao = extrator.extrair(texto)
     grafo = extracao.grafo
- 
+
     paragrafos = [p.strip() for p in texto.split("\n\n") if p.strip()]
     introducao = paragrafos[0] if paragrafos else ""
     conclusao = paragrafos[-1] if paragrafos else ""
- 
+
     alvos = identificar(
         extracao, extrator,
         titulo=titulo, enunciado=enunciado,
         introducao=introducao, conclusao=conclusao,
     )
- 
+
     lacos = [sorted(c) for c in ciclos_argumentativos(grafo)]
     cadeia = cadeia_argumentativa(grafo)
- 
-    condensacao = condensar(grafo, tarjan(grafo))
-    maior_caminho = maior_caminho_dag(condensacao.grafo)
- 
+
     caminho = None
     if alvos.tema is not None and alvos.propostas:
         caminho = caminho_tema_proposta(grafo, alvos.tema, alvos.propostas)
- 
+
     achado_tema, orfaos = _avaliar_tema(grafo, alvos, extracao)
- 
+
     achados = [_avaliar_progressao(grafo, cadeia)]
     laco = _avaliar_lacos(lacos, extracao)
     if laco is not None:
         achados.append(laco)
     achados.append(achado_tema)
     achados.append(_avaliar_proposta(grafo, alvos, caminho, extracao))
- 
+
     return Diagnostico(
         extracao=extracao,
         alvos=alvos,
@@ -284,9 +289,8 @@ def diagnosticar(
         caminho=caminho,
         orfaos=orfaos,
         achados=achados,
-        condensacao=condensacao,
-        maior_caminho=maior_caminho,
     )
+
 
 _MARCAS = {
     OK: "[ ok         ]",
@@ -295,24 +299,24 @@ _MARCAS = {
     OBSERVACAO: "[ observacao ]",
     INDEFINIDO: "[ indefinido ]",
 }
- 
- 
+
+
 def _main(argv: list[str]) -> int:
     import sys
- 
+
     if not 2 <= len(argv) <= 3:
         print("uso: python -m src.diagnostico <arquivo.txt> [titulo]", file=sys.stderr)
         return 2
- 
+
     caminho = argv[1]
     titulo = argv[2] if len(argv) == 3 else ""
- 
+
     try:
         texto = open(caminho, encoding="utf-8").read()
     except OSError as erro:
         print(f"não consegui ler {caminho}: {erro}", file=sys.stderr)
         return 1
- 
+
     d = diagnosticar(texto, titulo=titulo)
 
     sequencia = "—" if d.cadeia is None else str(d.tamanho_da_cadeia)
@@ -323,7 +327,7 @@ def _main(argv: list[str]) -> int:
         print(f"ideia central: {d.exibir(d.alvos.tema)} "
               f"(a partir do {d.alvos.origem_do_tema})")
     print()
- 
+
     for achado in d.achados:
         print(f"{_MARCAS[achado.status]} C{achado.competencia} · {achado.nome}")
         print(f"                {achado.resumo}")
@@ -331,7 +335,7 @@ def _main(argv: list[str]) -> int:
             recorte = evidencia if len(evidencia) <= 95 else evidencia[:92] + "..."
             print(f"                  · {recorte}")
         print()
- 
+
     indefinidos = len(d.achados) - len(d.conclusivos)
     if indefinidos:
         print(f"{indefinidos} dos {len(d.achados)} pontos acima ficaram sem veredito: "
@@ -339,8 +343,8 @@ def _main(argv: list[str]) -> int:
         print("e eles não separaram texto bom de ruim, então mostramos o número sem julgar.")
     return 0
 
+
 if __name__ == "__main__":
     import sys
- 
+
     raise SystemExit(_main(sys.argv))
- 

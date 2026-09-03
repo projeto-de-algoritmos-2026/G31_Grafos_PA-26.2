@@ -10,7 +10,7 @@ INFINITO = float("inf")
  
  
 def dijkstra(grafo: Grafo, origem: str) -> tuple[dict[str, float], dict[str, str | None]]:
-
+    """Distância mínima de `origem` a cada vértice alcançável, com heap."""
     distancias: dict[str, float] = {}
     predecessores: dict[str, str | None] = {}
  

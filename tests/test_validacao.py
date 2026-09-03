@@ -1,4 +1,4 @@
-
+"""Testes da validação (validacao.py)."""
 import unittest
 
 from validacao import Grupo, grafico_svg, melhor_corte, tabela_markdown
@@ -13,6 +13,7 @@ class TestGrupo(unittest.TestCase):
         self.assertEqual(g.quartil(0.5), 0.0)
 
     def test_quartis(self):
+        """Quartil por posição (nearest-rank), não interpolado."""
         g = Grupo("teste", list(range(1, 101)))
         self.assertEqual(g.quartil(0.25), 25.0)
         self.assertEqual(g.mediana, 50.5)
@@ -32,6 +33,7 @@ class TestMelhorCorte(unittest.TestCase):
         self.assertTrue(3 < corte <= 10)
 
     def test_grupos_identicos_nao_separam(self):
+        """Métrica que não sabe nada tem que aparecer como tal."""
         valores = [5, 6, 7, 8]
         _, taxa = melhor_corte(Grupo("a", valores), Grupo("b", list(valores)))
         self.assertLessEqual(taxa, 0.75)
@@ -47,6 +49,7 @@ class TestMelhorCorte(unittest.TestCase):
         self.assertLessEqual(taxa, 1.0)
 
     def test_separacao_invertida_nao_e_premiada(self):
+        """Se o grupo 'alto' tem valores baixos, o corte não deve fingir acerto."""
         altas = Grupo("a", [1, 2, 3])
         baixas = Grupo("b", [10, 11, 12])
         _, taxa = melhor_corte(altas, baixas)
@@ -81,11 +84,13 @@ class TestGrafico(unittest.TestCase):
         self.assertIn("74%", svg)
 
     def test_cada_faceta_se_nomeia(self):
+        """Rótulo direto em vez de caixa de legenda."""
         svg = self.desenhar()
         self.assertIn("Nota alta", svg)
         self.assertIn("Nota baixa", svg)
 
     def test_fundo_explicito(self):
+        """O SVG vai para o README, que pode estar em tema escuro."""
         self.assertIn('fill="#FCFCFB"', self.desenhar())
 
     def test_grupos_vazios_nao_quebram(self):
