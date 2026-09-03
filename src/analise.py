@@ -1,4 +1,3 @@
-"""Análise avançada de grafos: ciclos, cadeias, rastreabilidade, métricas."""
 
 from __future__ import annotations
 
@@ -10,20 +9,7 @@ from src.grafo import Grafo
 INFINITO = float("inf")
 
 
-# ==============================================================================
-# Tarjan (SCC) — Detecta componentes fortemente conectadas (ciclos)
-# ==============================================================================
-
-
 def tarjan(grafo: Grafo) -> list[set[str]]:
-    """
-    Algoritmo de Tarjan para encontrar componentes fortemente conectadas.
-
-    Retorna uma lista de conjuntos, onde cada conjunto é uma SCC.
-    Um conjunto com >1 vértice indica argumentação circular.
-
-    Complexidade: O(V + E)
-    """
     indice = 0
     pilha: list[str] = []
     indices: dict[str, int] = {}
@@ -64,28 +50,10 @@ def tarjan(grafo: Grafo) -> list[set[str]]:
 
 
 def ciclos_argumentativos(grafo: Grafo) -> list[set[str]]:
-    """
-    Retorna os ciclos (argumentações circulares) do grafo.
-
-    Cada conjunto com >1 vértice é um ciclo. Componentes triviais (1 vértice)
-    são ignoradas.
-    """
     return [scc for scc in tarjan(grafo) if len(scc) > 1]
 
 
-# ==============================================================================
-# Kahn — Ordenação topológica (cadeia argumentativa)
-# ==============================================================================
-
-
 def kahn(grafo: Grafo) -> list[str] | None:
-    """
-    Algoritmo de Kahn para ordenação topológica.
-
-    Retorna os vértices em ordem topológica, ou None se houver ciclos.
-
-    Complexidade: O(V + E)
-    """
     graus = grafo.grau_entrada()
     fila: list[str] = [v for v in grafo.vertices if graus[v] == 0]
     ordem: list[str] = []
@@ -99,7 +67,6 @@ def kahn(grafo: Grafo) -> list[str] | None:
             if graus[v] == 0:
                 fila.append(v)
 
-    # Se nem todos os vértices foram ordenados, há ciclos
     if len(ordem) != grafo.num_vertices:
         return None
 
@@ -107,29 +74,80 @@ def kahn(grafo: Grafo) -> list[str] | None:
 
 
 def cadeia_argumentativa(grafo: Grafo) -> list[str] | None:
-    """
-    Retorna a cadeia argumentativa (vértices em ordem topológica).
-
-    Se houver ciclos, retorna None.
-    """
     return kahn(grafo)
 
 
-# ==============================================================================
-# Rastreabilidade — Frases que sustentam cada aresta do caminho
-# ==============================================================================
+@dataclass
+class Condensacao:
+
+    grafo: Grafo
+    rotulo_de: dict[str, str]
+    membros: dict[str, set[str]]
+
+
+def condensar(grafo: Grafo, sccs: list[set[str]] | None = None) -> Condensacao:
+    if sccs is None:
+        sccs = tarjan(grafo)
+
+    rotulo_de: dict[str, str] = {}
+    membros: dict[str, set[str]] = {}
+    for componente in sccs:
+        rotulo = " + ".join(sorted(componente))
+        membros[rotulo] = componente
+        for v in componente:
+            rotulo_de[v] = rotulo
+
+    condensado = Grafo()
+    for rotulo in membros:
+        condensado.adicionar_vertice(rotulo)
+
+    for aresta in grafo.arestas():
+        u, v = rotulo_de[aresta.origem], rotulo_de[aresta.destino]
+        if u == v:
+            continue
+        if condensado.aresta(u, v) is None:
+            condensado.adicionar_aresta(u, v)
+
+    return Condensacao(grafo=condensado, rotulo_de=rotulo_de, membros=membros)
+
+
+def maior_caminho_dag(grafo: Grafo) -> list[str] | None:
+    ordem = kahn(grafo)
+    if ordem is None:
+        return None
+    if not ordem:
+        return []
+
+    melhor_num_passos: dict[str, int] = {v: 0 for v in ordem}
+    melhor_pred: dict[str, str | None] = {v: None for v in ordem}
+
+    for u in ordem:
+        for v, _ in grafo.vizinhos(u):
+            candidato = melhor_num_passos[u] + 1
+            if candidato > melhor_num_passos[v]:
+                melhor_num_passos[v] = candidato
+                melhor_pred[v] = u
+
+    fim = max(melhor_num_passos, key=lambda v: melhor_num_passos[v])
+
+    caminho = [fim]
+    atual = fim
+    while melhor_pred[atual] is not None:
+        atual = melhor_pred[atual]
+        caminho.append(atual)
+    caminho.reverse()
+
+    return caminho
 
 
 @dataclass
 class CaminhoRastreavel:
-    """Caminho com suas frases sustentadoras."""
 
     conceitos: list[str]
-    arestas_frases: list[tuple[str, str, list[str]]]  # (origem, destino, frases)
+    arestas_frases: list[tuple[str, str, list[str]]]
     custo_total: float
 
     def __str__(self) -> str:
-        """Representação em string do caminho com frases."""
         linhas = [f"Custo total: {self.custo_total:.3f}\n"]
 
         for i, (origem, destino, frases) in enumerate(self.arestas_frases, 1):
@@ -143,11 +161,6 @@ class CaminhoRastreavel:
 def rastrear_caminho(
     grafo: Grafo, caminho: list[str]
 ) -> CaminhoRastreavel:
-    """
-    Constrói um caminho com rastreabilidade: frases originais de cada aresta.
-
-    Precisa que o caminho seja válido (sucessivos vértices do grafo).
-    """
     arestas_frases: list[tuple[str, str, list[str]]] = []
     custo_total = 0.0
 
@@ -167,21 +180,7 @@ def rastrear_caminho(
     )
 
 
-# ==============================================================================
-# Métricas — Força e qualidade argumentativa
-# ==============================================================================
-
-
 def forca_argumentativa(grafo: Grafo, caminho: list[str]) -> float:
-    """
-    Calcula a força argumentativa de um caminho.
-
-    Retorna a média dos inversos dos pesos (frequência média).
-    Um valor próximo a 1 significa argumentação bem sustentada;
-    próximo a 0 significa argumentação fraca.
-
-    Fórmula: frequência_média / max(frequências)
-    """
     if len(caminho) < 2:
         return 1.0
 
@@ -201,13 +200,6 @@ def forca_argumentativa(grafo: Grafo, caminho: list[str]) -> float:
 
 
 def qualidade_geral(grafo: Grafo) -> dict[str, float | int]:
-    """
-    Calcula métricas gerais de qualidade do grafo.
-
-    - density: densidade do grafo (E / V²)
-    - num_ciclos: número de ciclos argumentativos
-    - eh_aciclico: True se não tem ciclos
-    """
     V = grafo.num_vertices
     E = grafo.num_arestas
     density = E / (V * (V - 1)) if V > 1 else 0.0
@@ -223,19 +215,13 @@ def qualidade_geral(grafo: Grafo) -> dict[str, float | int]:
     }
 
 
-# ==============================================================================
-# Ranking de propostas com métricas
-# ==============================================================================
-
-
 @dataclass
 class PropostaAvaliada:
-    """Uma proposta com suas métricas."""
 
     nome: str
     custo: float
     alcancavel: bool
-    forca: float | None = None  # None se não alcançável
+    forca: float | None = None
 
 
 def ranking_propostas(
@@ -244,12 +230,6 @@ def ranking_propostas(
     propostas: list[str],
     caminhos: dict[str, list[str]] | None = None,
 ) -> list[PropostaAvaliada]:
-    """
-    Ranking de propostas ordenadas por custo (melhor primeiro).
-
-    Se `caminhos` for fornecido (dict {proposta: caminho}), calcula
-    também a força argumentativa de cada caminho.
-    """
     from src.caminhos import dijkstra, distancia
 
     distancias, predecessores = dijkstra(grafo, tema)
@@ -272,5 +252,5 @@ def ranking_propostas(
             )
         )
 
-    # Ordena por custo (alcançáveis primeiro, depois inalcançáveis)
     return sorted(resultado, key=lambda p: (not p.alcancavel, p.custo))
+ 

@@ -1,11 +1,3 @@
-"""
-Testes do carregamento do corpus (src/corpus.py).
-
-O corpus fica em `data/raw/`, que está no .gitignore, então um clone novo
-não o tem. Os testes que dependem dele são pulados automaticamente; os que
-testam a lógica de parsing e seleção rodam sempre, sobre redações
-construídas à mão.
-"""
 
 import unittest
 
@@ -14,12 +6,6 @@ from src.corpus import COMPETENCIAS, Redacao, amostra, carregar, estatisticas, f
 
 
 def _redacao(indice=0, notas=(160, 160, 120, 120, 120), tema_id=1, paragrafos=None) -> Redacao:
-    """Redação de teste, sem depender do corpus em disco.
-
-    `paragrafos=()` significa redação sem parágrafo nenhum e precisa ser
-    respeitado — por isso a comparação é com None, e não um `or`, que
-    trataria a tupla vazia como ausência de argumento.
-    """
     if paragrafos is None:
         paragrafos = ("Primeiro parágrafo.", "Meio.", "Conclusão com proposta.")
     return Redacao(
@@ -43,7 +29,6 @@ requer_corpus = unittest.skipUnless(
 
 
 class TestRedacao(unittest.TestCase):
-    """Testes que não tocam o disco."""
 
     def test_texto_junta_os_paragrafos(self):
         r = _redacao(paragrafos=("Um.", "Dois."))
@@ -82,7 +67,6 @@ class TestRedacao(unittest.TestCase):
 
 
 class TestParsingDeListas(unittest.TestCase):
-    """As colunas `essay` e `competence` guardam listas serializadas."""
 
     def test_lista_serializada(self):
         self.assertEqual(corpus._como_lista("['a', 'b']"), ("a", "b"))
@@ -91,7 +75,6 @@ class TestParsingDeListas(unittest.TestCase):
         self.assertEqual(corpus._como_lista("[160, 120]"), (160, 120))
 
     def test_texto_solto_vira_item_unico(self):
-        """Linha malformada vira dado pobre, não exceção."""
         self.assertEqual(corpus._como_lista("sem colchetes"), ("sem colchetes",))
 
     def test_aspas_desbalanceadas_nao_quebram(self):
@@ -130,7 +113,6 @@ class TestFiltrar(unittest.TestCase):
         self.assertEqual(len(filtrar(self.redacoes + [curta], min_paragrafos=3)), 3)
 
     def test_grupos_da_validacao_nao_se_sobrepoem(self):
-        """O desenho da validação do dia 03: C3 alta contra C3 baixa."""
         altas = filtrar(self.redacoes, competencia=3, minimo=160)
         baixas = filtrar(self.redacoes, competencia=3, maximo=80)
         self.assertEqual({r.indice for r in altas} & {r.indice for r in baixas}, set())
@@ -148,7 +130,6 @@ class TestAmostra(unittest.TestCase):
         self.assertEqual(len(amostra(self.redacoes, 999)), 50)
 
     def test_e_reprodutivel(self):
-        """Número que vai para o README precisa dar o mesmo na repetição."""
         a = [r.indice for r in amostra(self.redacoes, 10, semente=7)]
         b = [r.indice for r in amostra(self.redacoes, 10, semente=7)]
         self.assertEqual(a, b)
@@ -183,7 +164,6 @@ class TestSplitInvalido(unittest.TestCase):
 
 @requer_corpus
 class TestCorpusReal(unittest.TestCase):
-    """Só rodam com o Essay-BR baixado em data/raw/."""
 
     @classmethod
     def setUpClass(cls):

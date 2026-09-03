@@ -1,5 +1,3 @@
-#Caminho mínimo — algoritmo de Dijkstra, com heap binário.
-
 from __future__ import annotations
  
 import heapq
@@ -11,23 +9,6 @@ INFINITO = float("inf")
  
  
 def dijkstra(grafo: Grafo, origem: str) -> tuple[dict[str, float], dict[str, str | None]]:
-    """
-    Distância mínima de `origem` a cada vértice alcançável, com heap.
- 
-    Devolve o par (distancias, predecessores):
-      - distancias[v]:   custo do caminho mais barato de origem até v.
-                          Vértices não alcançáveis simplesmente não
-                          aparecem no dicionário (equivalente a distância
-                          infinita — ver `distancia`, abaixo, que já trata
-                          isso).
-      - predecessores[v]: de onde se chegou a v no caminho mais barato,
-                          ou None para a própria origem. Usado por
-                          `reconstruir_caminho` para montar o caminho
-                          completo, não só o custo.
- 
-    Se `origem` não existir no grafo, devolve os dois dicionários vazios
-    -- não é erro, é só "nada alcançável a partir de um ponto inexistente".
-    """
     distancias: dict[str, float] = {}
     predecessores: dict[str, str | None] = {}
  
@@ -69,8 +50,6 @@ def reconstruir_caminho(
     while atual != origem:
         anterior = predecessores[atual]
         if anterior is None:
-            # Só acontece se `destino` == `origem`; o laço nem entra
-            # nesse caso porque a condição do while já barra.
             break
         caminho.append(anterior)
         atual = anterior
@@ -90,9 +69,6 @@ class ResultadoTemaProposta:
     melhor_proposta: str | None
     custo: float
     caminho: list[str] | None
-    #: distância a CADA proposta declarada em `Alvos.propostas`, mesmo as
-    #: inalcançáveis (aparecem como INFINITO) -- útil para relatar todas,
-    #: não só a melhor.
     custos_por_proposta: dict[str, float] = field(default_factory=dict)
  
     @property

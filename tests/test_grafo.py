@@ -1,4 +1,3 @@
-"""Testes da estrutura de dados base (src/grafo.py)."""
 
 import unittest
 
@@ -59,7 +58,6 @@ class TestPesos(unittest.TestCase):
         self.assertEqual(g.num_arestas, 1)
 
     def test_pesos_sao_sempre_positivos(self):
-        """Condição de validade do Dijkstra."""
         g = ex.pesos_dijkstra()
         for aresta in g.arestas():
             self.assertGreater(aresta.peso, 0.0)

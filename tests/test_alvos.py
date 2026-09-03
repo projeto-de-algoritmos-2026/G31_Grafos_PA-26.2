@@ -1,9 +1,3 @@
-"""
-Testes da identificação de tema e proposta (src/alvos.py).
-
-Os testes de estrutura usam grafos montados à mão e rodam sempre. Os que
-precisam interpretar texto são pulados sem o modelo do spaCy instalado.
-"""
 
 import unittest
 
@@ -52,7 +46,6 @@ class TestAlvos(unittest.TestCase):
 
 
 class TestCasamento(unittest.TestCase):
-    """O adjetivo varia; o núcleo nominal é a parte estável."""
 
     def setUp(self):
         self.grafo = Grafo.de_pares([
@@ -67,7 +60,6 @@ class TestCasamento(unittest.TestCase):
         )
 
     def test_casamento_pelo_nucleo(self):
-        """'comunidade' no título deve achar 'comunidade tradicional' no grafo."""
         self.assertEqual(_casar_com_grafo("comunidade", self.grafo), ["comunidade tradicional"])
 
     def test_adjetivo_diferente_ainda_casa(self):
@@ -108,7 +100,6 @@ class TestIdentificarTema(unittest.TestCase):
         self.assertEqual(fonte, "introducao")
 
     def test_prefere_conceito_com_grau_de_saida(self):
-        """Uma folha não serve de origem: o Dijkstra não sairia do lugar."""
         grafo = Grafo.de_pares([("pobreza", "exclusão")])
         tema, _, _ = identificar_tema(
             grafo, self.extrator, titulo="A exclusão e a pobreza no país"
@@ -145,7 +136,6 @@ class TestIdentificarPropostas(unittest.TestCase):
         self.assertIn("campanha educativo", propostas)
 
     def test_recua_para_todos_os_conceitos(self):
-        """Sem verbo de intervenção, o fecho inteiro vira candidato."""
         grafo = Grafo.de_pares([("pobreza", "exclusão")])
         propostas = identificar_propostas(
             grafo, self.extrator, "Em suma, a pobreza permanece um problema."
@@ -196,7 +186,6 @@ class TestIdentificarCompleto(unittest.TestCase):
 class TestVocabulario(unittest.TestCase):
 
     def test_verbos_estao_no_infinitivo(self):
-        """A comparação é feita contra o lema, que vem no infinitivo."""
         for verbo in VERBOS_DE_INTERVENCAO:
             self.assertTrue(verbo.endswith(("ar", "er", "ir")), verbo)
 
