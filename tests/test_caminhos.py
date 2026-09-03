@@ -21,7 +21,7 @@ class TestDijkstra(unittest.TestCase):
             self.assertAlmostEqual(distancias[v], esperado, places=6)
 
     def test_ignora_caminho_ganancioso(self):
-        """s -> b direto custa 1.00; s -> a -> b custa 0.75."""
+
         distancias, _ = dijkstra(ex.pesos_dijkstra(), "s")
         self.assertAlmostEqual(distancias["b"], 0.75, places=6)
 
@@ -92,7 +92,6 @@ class TestCaminhoTemaProposta(unittest.TestCase):
         self.assertEqual(resultado.caminho, ex.PESOS_CAMINHO_ATE_D)
 
     def test_proposta_inalcancavel_e_a_falha_da_competencia_5(self):
-        """Caso central do domínio: proposta que o texto não preparou."""
         g = ex.desconexo()
         resultado = caminho_tema_proposta(g, tema="tema", propostas=["proposta"])
 

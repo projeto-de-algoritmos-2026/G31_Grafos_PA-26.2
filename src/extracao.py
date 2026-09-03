@@ -70,7 +70,6 @@ class Extracao:
     rotulos: dict[str, str] = field(default_factory=dict)
 
     def exibir(self, chave: str) -> str:
-        """Nome legível de um vértice, com recuo para a própria chave."""
         return self.rotulos.get(chave, chave)
 
     @property
@@ -138,7 +137,6 @@ def _resolver_pronome(token):
 
 
 def _nominal_a_esquerda(token):
-    """Substantivo mais próximo à esquerda, dentro da mesma frase."""
     frase = token.sent
     for anterior in reversed(list(frase[: token.i - frase.start])):
         if anterior.pos_ in POS_NOMINAL:
@@ -196,7 +194,6 @@ def _expandir_coordenados(tokens) -> Iterator:
 
 
 def _abre_com_conectivo(frase) -> bool:
-    """A frase começa marcando consequência do que veio antes?"""
     inicio = frase.text.strip().lower()
     for conectivo in CONECTIVOS_CONSECUTIVOS:
         if inicio.startswith(conectivo):
@@ -224,7 +221,6 @@ def _texto_exibicao(token) -> str:
 
 
 def _e_conceito_valido(token, rotulo: str) -> bool:
-    """Filtra o que não deve virar vértice."""
     if token.pos_ not in POS_NOMINAL:
         return False
     if not rotulo or len(rotulo) < 3:
@@ -240,7 +236,6 @@ class Extrator:
         self._nlp = nlp if nlp is not None else carregar_modelo(modelo)
 
     def extrair(self, texto: str) -> Extracao:
-        """Percorre cada frase do texto e acumula as arestas encontradas."""
         documento = self._nlp(texto)
         resultado = Extracao(grafo=Grafo())
         anterior: str | None = None
@@ -283,7 +278,6 @@ class Extrator:
         return nomes[0] if nomes else None
 
     def _arestas_da_frase(self, frase, exibicao=None) -> Iterator[tuple[str, str]]:
-        """Aplica a regra base e os quatro refinamentos a uma única frase."""
         vistas: set[tuple[str, str]] = set()
 
         for token in frase:
@@ -317,7 +311,6 @@ class Extrator:
         return self._rotulos(t for t in documento if t.pos_ in POS_NOMINAL)
 
     def _rotulos(self, tokens, exibicao: dict[str, str] | None = None) -> list[str]:
-        """Converte tokens sintáticos em nomes de vértice, já refinados."""
         nomes: list[str] = []
         for token in tokens:
             nominal = _resolver_pronome(token)
@@ -342,7 +335,6 @@ class Extrator:
 
 
 def extrair_grafo(texto: str, modelo: str = MODELO_PADRAO) -> Grafo:
-    """Atalho para quem só quer o grafo e não as estatísticas."""
     return Extrator(modelo).extrair(texto).grafo
 
 

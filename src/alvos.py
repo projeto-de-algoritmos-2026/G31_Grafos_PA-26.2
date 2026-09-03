@@ -1,4 +1,3 @@
-"""Identificação da origem e do destino do caminho mínimo."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,7 +16,7 @@ VERBOS_DE_INTERVENCAO: frozenset[str] = frozenset({
 
 @dataclass
 class Alvos:
-    """Origem e destinos do caminho mínimo, com o rastro da decisão."""
+
     tema: str | None = None
     origem_do_tema: str = ""
     propostas: list[str] = field(default_factory=list)
@@ -25,7 +24,6 @@ class Alvos:
 
     @property
     def utilizavel(self) -> bool:
-        """Só faz sentido rodar o Dijkstra com os dois pontos definidos."""
         return self.tema is not None and bool(self.propostas)
 
     def resumo(self) -> str:
@@ -48,7 +46,7 @@ def _grau_de_saida(grafo: Grafo, vertice: str) -> int:
 
 
 def _casar_com_grafo(candidato: str, grafo: Grafo) -> list[str]:
-    """Vértices do grafo que correspondem a um conceito citado no texto."""
+
     if candidato in grafo:
         return [candidato]
     nucleo = candidato.split()[0]
@@ -63,7 +61,7 @@ def identificar_tema(
     enunciado: str = "",
     introducao: str = "",
 ) -> tuple[str | None, str, list[str]]:
-    """Escolhe o vértice do grafo que melhor representa o tema."""
+
     candidatos_vistos: list[str] = []
     reserva: str | None = None
     reserva_fonte = ""
@@ -95,7 +93,7 @@ def identificar_tema(
 
 
 def identificar_propostas(grafo: Grafo, extrator: Extrator, conclusao: str) -> list[str]:
-    """Conceitos de que trata a proposta de intervenção."""
+
     if not conclusao.strip():
         return []
 
@@ -133,7 +131,6 @@ def identificar(
     introducao: str = "",
     conclusao: str = "",
 ) -> Alvos:
-    """Aplica as duas identificações e devolve tudo junto."""
     grafo = extracao.grafo
     tema, fonte, candidatos = identificar_tema(
         grafo, extrator, titulo=titulo, enunciado=enunciado, introducao=introducao

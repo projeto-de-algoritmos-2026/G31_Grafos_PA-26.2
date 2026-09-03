@@ -1,9 +1,9 @@
-"""Grafos pequenos com resposta conhecida."""
+
 from src.grafo import Grafo
 
 
 def dag_simples() -> Grafo:
-    """a -> b -> c a ------> c Sem ciclos."""
+
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("a", "c")])
 
 
@@ -12,7 +12,7 @@ DAG_SIMPLES_ORDEM = ["a", "b", "c"]
 
 
 def com_ciclo() -> Grafo:
-    """a -> b -> c -> a c -> d Um componente fortemente conectado {a, b, c} e um vértice solto {d}."""
+
     return Grafo.de_pares([("a", "b"), ("b", "c"), ("c", "a"), ("c", "d")])
 
 
@@ -21,7 +21,7 @@ COM_CICLO_ORDEM_CONDENSADA = [{"a", "b", "c"}, {"d"}]
 
 
 def cormen_22_9() -> Grafo:
-    """Grafo da figura 22.9 do Cormen (3ª edição), capítulo 22."""
+
     return Grafo.de_pares([
         ("a", "b"),
         ("b", "c"), ("b", "e"), ("b", "f"),
@@ -37,7 +37,7 @@ CORMEN_SCCS = [{"a", "b", "e"}, {"c", "d"}, {"f", "g"}, {"h"}]
 
 
 def pesos_dijkstra() -> Grafo:
-    """Pesos são 1/frequência, então a frequência é que é declarada aqui."""
+
     g = Grafo()
     for u, v, freq in [
         ("s", "a", 4),
@@ -57,7 +57,7 @@ PESOS_CAMINHO_ATE_D = ["s", "a", "b", "c", "d"]
 
 
 def desconexo() -> Grafo:
-    """tema -> argumento proposta -> acao (ilha separada) Modela a falha da Competência 5: a proposta."""
+
     return Grafo.de_pares([
         ("tema", "argumento"),
         ("proposta", "acao"),

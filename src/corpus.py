@@ -1,4 +1,4 @@
-"""Carregamento do corpus Essay-BR."""
+
 from __future__ import annotations
 
 import ast
@@ -29,7 +29,7 @@ Para baixar:
 
 @dataclass(frozen=True)
 class Redacao:
-    """Uma redação do corpus, com sua avaliação humana."""
+
     indice: int
     titulo: str
     paragrafos: tuple[str, ...]
@@ -40,12 +40,11 @@ class Redacao:
 
     @property
     def texto(self) -> str:
-        """A redação inteira, com os parágrafos separados por linha em branco."""
         return "\n\n".join(self.paragrafos)
 
     @property
     def conclusao(self) -> str:
-        """Último parágrafo — onde mora a proposta de intervenção."""
+
         return self.paragrafos[-1] if self.paragrafos else ""
 
     @property
@@ -54,31 +53,25 @@ class Redacao:
 
     @property
     def norma_culta(self) -> int:
-        """Competência 1."""
         return self.competencias[0]
 
     @property
     def compreensao_do_tema(self) -> int:
-        """Competência 2 — o que o Dijkstra a partir do tema deve refletir."""
         return self.competencias[1]
 
     @property
     def coerencia(self) -> int:
-        """Competência 3 — o que o SCC e a ordenação topológica devem refletir."""
         return self.competencias[2]
 
     @property
     def coesao(self) -> int:
-        """Competência 4."""
         return self.competencias[3]
 
     @property
     def proposta_de_intervencao(self) -> int:
-        """Competência 5 — o que a conexão tema→proposta deve refletir."""
         return self.competencias[4]
 
     def competencia(self, numero: int) -> int:
-        """Nota da competência `numero`, de 1 a 5."""
         if not 1 <= numero <= 5:
             raise ValueError(f"competência precisa estar entre 1 e 5, veio {numero}")
         return self.competencias[numero - 1]
@@ -91,7 +84,7 @@ class Redacao:
 
 
 def _como_lista(bruto: str) -> tuple:
-    """Reinterpreta uma coluna que guarda uma lista do Python como texto."""
+
     try:
         valor = ast.literal_eval(bruto)
     except (ValueError, SyntaxError):
@@ -102,7 +95,6 @@ def _como_lista(bruto: str) -> tuple:
 
 
 def _ler_temas(pasta: Path) -> dict[int, str]:
-    """Mapa id do tema -> texto motivador, vindo de `prompts.csv`."""
     caminho = pasta / "prompts.csv"
     if not caminho.exists():
         return {}
@@ -119,7 +111,7 @@ def _ler_temas(pasta: Path) -> dict[int, str]:
 
 
 def carregar(caminho: Path | str | None = None, split: str | None = None) -> list[Redacao]:
-    """Lê o corpus e devolve as redações."""
+
     pasta = Path(caminho) if caminho is not None else CAMINHO_PADRAO
 
     if split is None:
@@ -177,7 +169,7 @@ def filtrar(
     tema_id: int | None = None,
     min_paragrafos: int | None = None,
 ) -> list[Redacao]:
-    """Recorta o corpus."""
+
     def nota_de(r: Redacao) -> int:
         return r.competencia(competencia) if competencia else r.nota
 
@@ -194,14 +186,13 @@ def filtrar(
 
 
 def amostra(redacoes: list[Redacao], n: int, semente: int = 42) -> list[Redacao]:
-    """Amostra aleatória e REPRODUTÍVEL."""
+
     if n >= len(redacoes):
         return list(redacoes)
     return random.Random(semente).sample(redacoes, n)
 
 
 def estatisticas(redacoes: list[Redacao]) -> dict:
-    """Números descritivos do recorte, para conferir o que se está medindo."""
     if not redacoes:
         return {"redacoes": 0}
 

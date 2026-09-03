@@ -1,4 +1,4 @@
-"""Testes do desenho do grafo (src/visualizacao.py)."""
+
 import unittest
 
 from src.alvos import Alvos
