@@ -82,6 +82,68 @@ def cadeia_argumentativa(grafo: Grafo) -> list[str] | None:
 
 
 @dataclass
+class Condensacao:
+    grafo: Grafo
+    rotulo_de: dict[str, str]
+    membros: dict[str, set[str]]
+
+
+def condensar(grafo: Grafo, sccs: list[set[str]] | None = None) -> Condensacao:
+    if sccs is None:
+        sccs = tarjan(grafo)
+
+    rotulo_de: dict[str, str] = {}
+    membros: dict[str, set[str]] = {}
+    for componente in sccs:
+        rotulo = " + ".join(sorted(componente))
+        membros[rotulo] = componente
+        for v in componente:
+            rotulo_de[v] = rotulo
+
+    condensado = Grafo()
+    for rotulo in membros:
+        condensado.adicionar_vertice(rotulo)
+
+    for aresta in grafo.arestas():
+        u, v = rotulo_de[aresta.origem], rotulo_de[aresta.destino]
+        if u == v:
+            continue
+        if condensado.aresta(u, v) is None:
+            condensado.adicionar_aresta(u, v)
+
+    return Condensacao(grafo=condensado, rotulo_de=rotulo_de, membros=membros)
+
+
+def maior_caminho_dag(grafo: Grafo) -> list[str] | None:
+    ordem = kahn(grafo)
+    if ordem is None:
+        return None
+    if not ordem:
+        return []
+
+    melhor_num_passos: dict[str, int] = {v: 0 for v in ordem}
+    melhor_pred: dict[str, str | None] = {v: None for v in ordem}
+
+    for u in ordem:
+        for v, _ in grafo.vizinhos(u):
+            candidato = melhor_num_passos[u] + 1
+            if candidato > melhor_num_passos[v]:
+                melhor_num_passos[v] = candidato
+                melhor_pred[v] = u
+
+    fim = max(melhor_num_passos, key=lambda v: melhor_num_passos[v])
+
+    caminho = [fim]
+    atual = fim
+    while melhor_pred[atual] is not None:
+        atual = melhor_pred[atual]
+        caminho.append(atual)
+    caminho.reverse()
+
+    return caminho
+
+
+@dataclass
 class CaminhoRastreavel:
     """Caminho com suas frases sustentadoras."""
     conceitos: list[str]

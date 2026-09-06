@@ -8,7 +8,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from src.analise import cadeia_argumentativa
+from src.analise import cadeia_argumentativa, condensar, maior_caminho_dag, tarjan
 from src.corpus import COMPETENCIAS, Redacao, amostra, carregar, filtrar
 from src.extracao import Extrator
 from src.grafo import Grafo
@@ -25,8 +25,22 @@ def _tamanho_da_cadeia(grafo: Grafo) -> int:
     return len(cadeia) if cadeia else 0
 
 
+def _tamanho_da_cadeia_condensada(grafo: Grafo) -> int:
+    """A cadeia calculada sobre o grafo condensado: existe sempre."""
+    ordem = cadeia_argumentativa(condensar(grafo, tarjan(grafo)).grafo)
+    return len(ordem) if ordem else 0
+
+
+def _tamanho_do_maior_caminho(grafo: Grafo) -> int:
+    """Maior cadeia do grafo condensado — existe mesmo quando há laço."""
+    caminho = maior_caminho_dag(condensar(grafo, tarjan(grafo)).grafo)
+    return len(caminho) if caminho else 0
+
+
 METRICAS = {
     "cadeia": ("comprimento da cadeia argumentativa", _tamanho_da_cadeia),
+    "cadeia_condensada": ("cadeia sobre o grafo condensado", _tamanho_da_cadeia_condensada),
+    "maior_caminho": ("maior caminho no grafo condensado", _tamanho_do_maior_caminho),
     "conceitos": ("número de conceitos", lambda g: g.num_vertices),
     "relacoes": ("número de relações", lambda g: g.num_arestas),
 }

@@ -8,17 +8,23 @@ from src.diagnostico import (
     OBSERVACAO,
     CADEIA_CORTE,
     CADEIA_MEDIANA_BOA,
+    MAIOR_CAMINHO_CORTE,
     FALHA,
     INDEFINIDO,
     OK,
     Achado,
     Diagnostico,
+    _avaliar_encadeamento,
+    _ligacao_ao_tema,
+    _quantia,
+    frase,
     _avaliar_lacos,
     _avaliar_progressao,
     _avaliar_proposta,
     _avaliar_tema,
     diagnosticar,
 )
+from src.analise import cadeia_argumentativa, condensar, tarjan
 from src.extracao import Extracao, Extrator
 from src.grafo import Grafo
 
@@ -48,13 +54,81 @@ requer_modelo = unittest.skipUnless(
 )
 
 
+class TestNumerosNoTexto(unittest.TestCase):
+    """O laudo é lido por pessoas: número pequeno vai por extenso e concorda."""
+
+    def test_ate_dez_por_extenso_acima_em_algarismo(self):
+        self.assertEqual(_quantia(1, "grupo"), "um grupo")
+        self.assertEqual(_quantia(3, "passo"), "três passos")
+        self.assertEqual(_quantia(10, "ideia"), "dez ideias")
+        self.assertEqual(_quantia(18, "ideia"), "18 ideias")
+
+    def test_concordancia_de_genero(self):
+        """"a um ligação de distância" já apareceu na tela uma vez."""
+        self.assertEqual(_quantia(1, "ligação", "ligações", feminino=True), "uma ligação")
+        self.assertEqual(_quantia(2, "ideia", feminino=True), "duas ideias")
+        self.assertEqual(_quantia(3, "ideia", feminino=True), "três ideias")
+
+    def test_plural_irregular(self):
+        """O plural que não é só somar "s" tem de ser passado à mão."""
+        self.assertEqual(
+            _quantia(2, "ligação", "ligações", feminino=True), "duas ligações"
+        )
+
+    def test_zero_pede_singular_e_nao_a_palavra_zero(self):
+        """"a nenhum ligações de distância" já apareceu na tela."""
+        self.assertEqual(
+            _quantia(0, "ligação", "ligações", feminino=True), "nenhuma ligação"
+        )
+
+    def test_concordancia_do_verbo_com_a_quantidade(self):
+        self.assertIn("uma de quatro ideias da sua proposta se liga", _ligacao_ao_tema(1, 4))
+        self.assertIn("duas de quatro ideias da sua proposta se ligam", _ligacao_ao_tema(2, 4))
+
+    def test_quando_sao_todas_o_texto_diz_todas(self):
+        self.assertEqual(_ligacao_ao_tema(1, 1), "a única ideia da sua proposta se liga ao tema")
+        self.assertIn("todas as três", _ligacao_ao_tema(3, 3))
+        self.assertIn("duas de três", _ligacao_ao_tema(2, 3))
+
+
+class TestFrase(unittest.TestCase):
+    """As mensagens são guardadas em minúscula; quem exibe é que pontua."""
+
+    def test_maiuscula_e_ponto_final(self):
+        self.assertEqual(frase("sua redação desenvolve 32 ideias"),
+                         "Sua redação desenvolve 32 ideias.")
+
+    def test_nao_duplica_pontuacao(self):
+        self.assertEqual(frase("Pronto."), "Pronto.")
+        self.assertEqual(frase("e agora?"), "E agora?")
+
+    def test_texto_vazio_nao_quebra(self):
+        self.assertEqual(frase(""), "")
+
+    def test_a_mensagem_guardada_continua_minuscula(self):
+        """Se isto falhar, a capitalização vazou para dentro do Achado."""
+        a = _avaliar_lacos([["a", "b"]], _extracao_de(Grafo()))
+        self.assertTrue(a.resumo[0].islower())
+
+
 class TestCalibragem(unittest.TestCase):
     """Os limiares vieram de medição, não de chute."""
     def test_o_corte_medido_e_respeitado(self):
-        """CADEIA_CORTE = 20 separa os dois grupos de C3 com 74% de acerto (n=160 no Essay-BR)."""
+        """CADEIA_CORTE = 20 sobre o grafo condensado: 73% de acerto, n=160 no Essay-BR."""
         self.assertEqual(CADEIA_CORTE, 20)
         self.assertEqual(CADEIA_MEDIANA_BOA, 29)
         self.assertLess(CADEIA_CORTE, CADEIA_MEDIANA_BOA)
+
+    def test_a_profundidade_nunca_vira_veredito(self):
+        """O maior caminho acerta só 61% — enquanto for isso, é observação, não nota."""
+        self.assertEqual(MAIOR_CAMINHO_CORTE, 4)
+        for caminho in (None, [], ["a"], ["a", "b", "c", "d", "e", "f"]):
+            self.assertEqual(_avaliar_encadeamento(caminho).status, OBSERVACAO)
+
+    def test_a_profundidade_conta_passos_e_nao_vertices(self):
+        """5 conceitos em fila são 4 passos, não 5."""
+        self.assertIn("quatro passos", _avaliar_encadeamento(list("abcde")).resumo)
+        self.assertIn("um passo", _avaliar_encadeamento(["a", "b"]).resumo)
 
 
 class TestProgressao(unittest.TestCase):
@@ -85,13 +159,16 @@ class TestProgressao(unittest.TestCase):
         a = _avaliar_progressao(Grafo(), None)
         self.assertEqual(a.status, FALHA)
 
-    def test_grafo_ciclico_fica_indefinido(self):
-        """Sem condensação, o Kahn não ordena."""
-        g = Grafo.de_pares([("a", "b"), ("b", "a")])
-        a = _avaliar_progressao(g, None)
-        self.assertEqual(a.status, INDEFINIDO)
-        self.assertIn("nosso cálculo", a.resumo)
-        self.assertIn("não do seu texto", a.resumo)
+    def test_grafo_ciclico_recebe_veredito(self):
+        """
+        Antes o ciclo travava o Kahn e a C3 saía como "não sabemos avaliar".
+        Sobre a condensação o indicador existe sempre — e tem de existir,
+        porque a medição mostrou que ciclo não indica texto pior.
+        """
+        g = Grafo.de_pares([("a", "b"), ("b", "a"), ("b", "c")])
+        cadeia = cadeia_argumentativa(condensar(g, tarjan(g)).grafo)
+        self.assertIsNotNone(cadeia, "a condensação devia tornar o grafo ordenável")
+        self.assertNotEqual(_avaliar_progressao(g, cadeia).status, INDEFINIDO)
 
     def test_sempre_e_competencia_3(self):
         self.assertEqual(self.avaliar(25).competencia, 3)
@@ -123,7 +200,13 @@ class TestLacos(unittest.TestCase):
 
     def test_plural_com_mais_de_um_laco(self):
         a = _avaliar_lacos([["a", "b"], ["c", "d"]], _extracao_de(Grafo()))
-        self.assertIn("2 grupo", a.resumo)
+        self.assertIn("dois grupos", a.resumo)
+
+    def test_um_laco_no_singular_e_por_extenso(self):
+        """Em texto corrido "1 grupo" lê como planilha; o laudo é para gente ler."""
+        a = _avaliar_lacos([["a", "b"]], _extracao_de(Grafo()))
+        self.assertIn("um grupo", a.resumo)
+        self.assertNotIn("1 grupo", a.resumo)
 
     def test_usa_o_rotulo_de_exibicao(self):
         e = _extracao_de(Grafo(), {"política público": "políticas públicas"})

@@ -1,12 +1,27 @@
 # Dados
 
-## `exemplo_sintetico_com_laco.txt`
+## Redações de exemplo
 
-Redação **sintética**, escrita pela dupla para servir de caso de teste. Não é
-uma redação real do ENEM e não deve ser usada como evidência de nada sobre
-redações reais.
+As três são **sintéticas**, escritas pela dupla para servir de caso de teste. Não
+são redações reais do ENEM e não devem ser usadas como evidência de nada sobre
+redações reais. Cada uma foi escrita para cair num diagnóstico diferente, de
+modo que trocar de exemplo no aplicativo mostre o laudo mudando.
 
-Ela contém, de propósito:
+| arquivo | conceitos | relações | cobertura | o que exercita |
+| --- | --- | --- | --- | --- |
+| `exemplo_sintetico_bem_encadeado.txt` | 38 | 26 | 87% | texto longo e encadeado — C3 aprovada |
+| `exemplo_sintetico_com_laco.txt` | 20 | 20 | 91% | argumento em círculo — Tarjan e condensação |
+| `exemplo_sintetico_fragmentado.txt` | 8 | 5 | 36% | ideias soltas — C3 em alerta, cobertura baixa |
+
+Para reproduzir qualquer linha da tabela:
+
+```bash
+python -m src.extracao data/<arquivo>.txt
+```
+
+### `exemplo_sintetico_com_laco.txt`
+
+É o mais completo, e contém de propósito:
 
 - uma **cadeia causal** longa (`agronegócio → expulsão → práticas ancestrais →
   identidade cultural`), que a ordenação topológica deve devolver inteira;
@@ -19,17 +34,9 @@ Ela contém, de propósito:
   (substantivo leve, oração relativa, aposto entre vírgulas, coordenação,
   verbo subordinado).
 
-Extração atual: **20 conceitos, 20 relações, 91% das frases aproveitadas
-(10 de 11)**. Para reproduzir:
-
-```bash
-python -m src.extracao data/exemplo_sintetico_com_laco.txt
-```
-
-Como o laço é proposital, este exemplo **não** produz a sequência de ideias: o
-Kahn não ordena grafo com ciclo, e o laudo devolve "não sabemos avaliar" na
-Competência 3. Isso é esperado enquanto a condensação dos componentes não
-entrar no caminho do cálculo.
+É também o exemplo que justifica a condensação: sem ela, o laço trava o Kahn e a
+Competência 3 sairia como "não sabemos avaliar" — logo neste texto, que a
+medição no corpus indica não ser pior por ter um ciclo.
 
 ## Corpus real
 

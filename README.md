@@ -15,7 +15,7 @@ Diagnóstico da estrutura argumentativa de redações do ENEM por meio de algori
 
 Uma redação dissertativo-argumentativa bem construída encadeia ideias: o tema leva a uma causa, a causa a uma consequência, a consequência à proposta de intervenção. Quando um corretor sente que "o texto não anda", ele está percebendo uma propriedade estrutural — e a hipótese deste trabalho é que essa propriedade é **topológica**, calculável sobre um grafo direcionado das ideias do texto.
 
-O aplicativo recebe a redação e devolve um diagnóstico visual: o mapa das ideias, a sequência que elas formam, os grupos de ideias que se puxam mutuamente, e a ligação entre o tema e a proposta. Cada aresta do grafo aponta para a frase original que a gerou, então o diagnóstico é **verificável** — o usuário confere a leitura em vez de acreditar nela.
+O aplicativo recebe a redação e devolve um diagnóstico visual: o mapa das ideias, quantas ideias distintas o texto sustenta, quão fundo ele encadeia, os grupos de ideias que se puxam mutuamente, e a ligação entre o tema e a proposta. Cada aresta do grafo aponta para a frase original que a gerou, então o diagnóstico é **verificável** — o usuário confere a leitura em vez de acreditar nela.
 
 Testamos a hipótese contra 160 redações já corrigidas por humanos. **Ela se confirmou para a Competência 3 e não se confirmou para as Competências 2 e 5.** Os números estão na seção de validação, e o programa só emite juízo onde a medição sustenta.
 
@@ -36,12 +36,13 @@ Todos foram **implementados do zero pela dupla**. Nenhuma biblioteca de grafos �
 | Algoritmo | Complexidade | Papel no diagnóstico |
 | --- | --- | --- |
 | Tarjan (componentes fortemente conectados) | `O(V + E)` | Identifica grupos de ideias que se justificam mutuamente, e viabiliza a ordenação topológica em qualquer grafo |
-| Kahn (ordenação topológica) | `O(V + E)` | Produz a sequência de ideias do texto — o indicador validado |
+| Kahn (ordenação topológica) | `O(V + E)` | Ordena o grafo condensado; o tamanho dessa ordenação é o indicador validado |
 | Dijkstra (caminho mínimo, com heap) | `O((V + E) log V)` | Mede a ligação entre o tema e a proposta de intervenção |
+| Condensação de componentes | `O(V + E)` | Colapsa cada laço num vértice único, transformando qualquer grafo em DAG |
+| Maior caminho em DAG | `O(V + E)` | Mede a espinha dorsal do argumento — funciona mesmo em texto com laço |
 
 > **Seção a completar pela Eduarda:** notas de implementação de cada algoritmo —
-> escolhas de estrutura de dados, por que Tarjan em vez de Kosaraju, como a
-> condensação entra antes do Kahn, e o cálculo do maior caminho no DAG.
+> escolhas de estrutura de dados e por que Tarjan em vez de Kosaraju.
 
 ### Decisões de escopo
 
@@ -52,14 +53,24 @@ Todos foram **implementados do zero pela dupla**. Nenhuma biblioteca de grafos �
 
 O script `validacao.py` compara redações que corretores humanos avaliaram bem e mal em uma competência, e reporta o ponto de corte que melhor separa os dois grupos.
 
-![Separação dos grupos de Competência 3 pela sequência de ideias](resultados/validacao_c3_cadeia.svg)
+![Separação dos grupos de Competência 3 pela quantidade de ideias sustentadas](resultados/validacao_c3_cadeia_condensada.svg)
 
 | grupo | n | p25 | mediana | p75 |
 | --- | --- | --- | --- | --- |
 | Competência 3 alta (≥ 160) | 80 | 23 | 29 | 35 |
-| Competência 3 baixa (≤ 80) | 80 | 12 | 18 | 27 |
+| Competência 3 baixa (≤ 80) | 80 | 14 | 18 | 27 |
 
-**Sequência ≥ 20 ideias separa os dois grupos com 74% de acerto** (n = 160, semente fixa). É um indicador com força medida, não um classificador — erra cerca de uma redação em cada quatro, e o programa diz isso.
+**Sustentar ≥ 20 ideias distintas separa os dois grupos com 73% de acerto** (n = 160, semente fixa). É um indicador com força medida, não um classificador — erra cerca de uma redação em cada quatro, e o programa diz isso.
+
+O número é o tamanho da ordenação topológica **do grafo condensado**. Condensar antes de ordenar não é detalhe de implementação: é o que faz o indicador existir nas redações com laço, que de outro modo travariam o Kahn e ficariam sem diagnóstico.
+
+### O indicador mede quantidade, não profundidade
+
+Vale registrar o que ele **não** é. O Kahn devolve todos os vértices do grafo, inclusive os que não se ligam a nada — então o número acima conta ideias distintas, não passos encadeados. Conferimos: em 40 de 40 redações amostradas, o tamanho da ordenação era igual ao número de conceitos. A métrica `conceitos`, contagem pura de vértices, marca 72% contra os 73% desta; a diferença é ruído.
+
+A medida de profundidade de verdade é o maior caminho no grafo condensado, e ela é **fraca**: corte em 4 passos, **61% de acerto**, com medianas de 3 contra 3 nos dois grupos. É a fragmentação do grafo reaparecendo por outro ângulo.
+
+Por isso o programa apresenta os dois números com pesos diferentes: a quantidade de ideias vira veredito de Competência 3, e a profundidade aparece como observação, com os 61% declarados na própria tela.
 
 ### O que não se sustentou
 
@@ -69,7 +80,7 @@ Duas hipóteses do desenho original **não** resistiram à medição, e ficam re
 
 **A argumentação circular como defeito.** Medido em 400 redações: ciclo aparece em 3,2% dos textos, e a média de Competência 3 desses é **120 contra 113** nos textos sem ciclo — levemente melhor, não pior. E 8 dos 13 ciclos têm apenas dois conceitos, o que costuma ser relação mútua legítima (*"a pobreza compromete a educação, e a falta de educação perpetua a pobreza"*), não falácia. Por isso o programa reporta ciclo como **observação neutra**, nunca como alerta.
 
-Esses dois achados mudam o papel do Tarjan no projeto: ele não pontua o texto, ele garante que o indicador de Competência 3 funcione em **toda** redação — sem a condensação dos componentes, o Kahn não ordena grafo cíclico e 3,2% dos textos perderiam o único diagnóstico validado.
+Esses dois achados mudam o papel do Tarjan no projeto: ele não pontua o texto, ele viabiliza o diagnóstico em **toda** redação. Sem a condensação, o Kahn não ordena grafo cíclico, e os 3,2% de textos com laço sairiam com um "não sabemos avaliar" na única competência que a medição sustenta — logo eles, que a medição mostrou não serem piores. Com ela, cada laço vira um vértice único, o grafo passa a ser acíclico por construção, e tanto a contagem de ideias quanto o maior caminho existem sempre.
 
 ## Estrutura do projeto
 
@@ -81,13 +92,13 @@ Esses dois achados mudam o papel do Tarjan no projeto: ele não pontua o texto, 
 │   ├── grafo.py              classe Grafo — lista de adjacência, sem biblioteca
 │   ├── extracao.py           texto → grafo de conceitos (spaCy como sensor)
 │   ├── alvos.py              qual conceito é o tema, quais são a proposta
-│   ├── analise.py            Tarjan, Kahn, rastreabilidade e métricas
+│   ├── analise.py            Tarjan, Kahn, condensação, maior caminho e métricas
 │   ├── caminhos.py           Dijkstra com heap
 │   ├── diagnostico.py        junta tudo e traduz para as competências do ENEM
 │   ├── corpus.py             carrega o Essay-BR com as notas por competência
 │   └── visualizacao.py       gera o DOT do grafo
-├── tests/                    172 testes; grafos pequenos com resposta conhecida
-├── data/                     redação de exemplo (o corpus fica em data/raw, não versionado)
+├── tests/                    192 testes; grafos pequenos com resposta conhecida
+├── data/                     três redações de exemplo (o corpus fica em data/raw, não versionado)
 └── resultados/               saída da validação: gráfico, tabela e dados brutos
 ```
 
@@ -144,7 +155,7 @@ procurar em lugar nenhum.
 python -m unittest discover -s tests -t .
 ```
 
-**172 testes.** Os que dependem do spaCy ou do corpus são pulados automaticamente quando eles não estão presentes, então a suíte roda em um clone recém-feito.
+**192 testes.** Os que dependem do spaCy ou do corpus são pulados automaticamente quando eles não estão presentes, então a suíte roda em um clone recém-feito.
 
 Os grafos de teste estão em `tests/grafos_exemplo.py` e têm resposta conhecida de antemão — incluindo o grafo da figura 22.9 do Cormen, o exemplo canônico de componentes fortemente conectados. Quando um teste falha, o problema está no algoritmo, nunca na expectativa.
 

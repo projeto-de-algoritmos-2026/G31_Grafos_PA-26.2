@@ -4,7 +4,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from src.alvos import Alvos, identificar
-from src.analise import cadeia_argumentativa, ciclos_argumentativos, rastrear_caminho
+from src.analise import (Condensacao, cadeia_argumentativa,
+                         ciclos_argumentativos, condensar, maior_caminho_dag,
+                         rastrear_caminho, tarjan)
 from src.caminhos import ResultadoTemaProposta, caminho_tema_proposta, orbita
 from src.extracao import Extracao, Extrator
 from src.grafo import Grafo
@@ -15,9 +17,57 @@ FALHA = "falha"
 INDEFINIDO = "indefinido"
 OBSERVACAO = "observacao"
 
+# Medido no Essay-BR, n=160: contar as ideias que o texto sustenta separa os
+# grupos de C3 com 73% de acerto neste corte. Contar sobre o grafo CONDENSADO
+# é o que faz o número existir também nas redações com laço.
 CADEIA_CORTE = 20
 
 CADEIA_MEDIANA_BOA = 29
+
+# Profundidade: o maior caminho no grafo condensado separa os mesmos grupos com
+# apenas 61%. É fraco, e por isso vira observação, nunca veredito.
+MAIOR_CAMINHO_CORTE = 4
+
+
+_EXTENSO = ("nenhum", "um", "dois", "três", "quatro", "cinco",
+            "seis", "sete", "oito", "nove", "dez")
+
+
+#: "uma ligação", não "um ligação" — só um e dois flexionam em português
+_EXTENSO_F = {0: "nenhuma", 1: "uma", 2: "duas"}
+
+
+def frase(texto: str) -> str:
+    """
+    Maiúscula inicial e ponto final, na hora de exibir.
+
+    Os textos dos achados são escritos em minúscula e sem ponto porque também
+    aparecem emendados depois do nome do achado ("progressão — suas ideias...").
+    Quem os mostra como parágrafo solto chama esta função; assim a pontuação é
+    decisão de quem exibe, e não fica presa dentro de cada mensagem.
+    """
+    if not texto:
+        return texto
+    texto = texto[:1].upper() + texto[1:]
+    return texto if texto[-1] in ".!?:" else texto + "."
+
+
+def _numero(n: int, *, feminino: bool = False) -> str:
+    """Número por extenso até dez; acima disso, algarismo."""
+    if not 0 <= n <= 10:
+        return str(n)
+    return _EXTENSO_F[n] if feminino and n in _EXTENSO_F else _EXTENSO[n]
+
+
+def _quantia(n: int, singular: str, plural: str | None = None, *,
+             feminino: bool = False) -> str:
+    """
+    "1 grupo" lê como planilha; "um grupo" lê como frase. Números até dez
+    vão por extenso, o resto em algarismo — convenção de texto corrido.
+    """
+    # "nenhuma ligação", não "nenhuma ligações": zero pede singular em português
+    substantivo = singular if n in (0, 1) else (plural or singular + "s")
+    return f"{_numero(n, feminino=feminino)} {substantivo}"
 
 
 @dataclass
@@ -50,6 +100,8 @@ class Diagnostico:
     caminho: ResultadoTemaProposta | None = None
     orfaos: list[str] = field(default_factory=list)
     achados: list[Achado] = field(default_factory=list)
+    condensacao: Condensacao | None = None
+    maior_caminho: list[str] | None = None
 
     @property
     def grafo(self) -> Grafo:
@@ -71,6 +123,11 @@ class Diagnostico:
     @property
     def tamanho_da_cadeia(self) -> int:
         return len(self.cadeia) if self.cadeia else 0
+
+    @property
+    def tamanho_maior_caminho(self) -> int:
+        """Passos da maior cadeia do grafo condensado — sobrevive a ciclo."""
+        return len(self.maior_caminho) if self.maior_caminho else 0
 
     def exibir(self, chave: str) -> str:
         """Nome legível de um conceito."""
@@ -103,8 +160,8 @@ class Diagnostico:
 
 
 def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
-    """Comprimento da ordenação topológica — o único indicador que a medição sustenta: distingue."""
-    nome = "encadeamento das ideias"
+    """Quantas ideias distintas o texto sustenta — o indicador com 73% de acerto."""
+    nome = "quantidade de ideias sustentadas"
 
     if not grafo.num_vertices:
         return Achado(
@@ -113,33 +170,38 @@ def _avaliar_progressao(grafo: Grafo, cadeia: list[str] | None) -> Achado:
             "colado por inteiro",
         )
 
-    if cadeia is None:
-        return Achado(
-            3, nome, INDEFINIDO,
-            "não conseguimos calcular a sequência porque há um grupo de ideias que "
-            "se puxam (veja abaixo). Isso é limitação do nosso cálculo, não do seu "
-            "texto",
-        )
-
-    passos = len(cadeia)
-    if passos >= CADEIA_MEDIANA_BOA:
+    ideias = len(cadeia) if cadeia else 0
+    if ideias >= CADEIA_MEDIANA_BOA:
         return Achado(
             3, nome, OK,
-            f"suas ideias formam uma sequência de {passos} passos, uma puxando a "
-            f"outra. Redações bem avaliadas em coerência ficam em torno de "
-            f"{CADEIA_MEDIANA_BOA} passos",
+            f"sua redação desenvolve {ideias} ideias distintas. Redações bem "
+            f"avaliadas em coerência ficam em torno de {CADEIA_MEDIANA_BOA}",
         )
-    if passos >= CADEIA_CORTE:
+    if ideias >= CADEIA_CORTE:
         return Achado(
             3, nome, OK,
-            f"suas ideias formam uma sequência de {passos} passos, dentro da faixa "
+            f"sua redação desenvolve {ideias} ideias distintas, dentro da faixa "
             f"das redações bem avaliadas em coerência",
         )
     return Achado(
         3, nome, ATENCAO,
-        f"suas ideias formam uma sequência de apenas {passos} passos. Nas redações "
-        f"que analisamos, abaixo de {CADEIA_CORTE} costuma indicar ideias que "
-        f"aparecem soltas, sem uma levar à outra",
+        f"sua redação desenvolve apenas {ideias} ideias distintas. Nas redações "
+        f"que analisamos, abaixo de {CADEIA_CORTE} costuma indicar um texto que "
+        f"repete o mesmo ponto em vez de avançar",
+    )
+
+
+def _avaliar_encadeamento(maior_caminho: list[str] | None) -> Achado:
+    """Profundidade: o maior caminho. Sempre observação — só 61% de acerto."""
+    nome = "profundidade do encadeamento"
+    passos = max(len(maior_caminho) - 1, 0) if maior_caminho else 0
+
+    return Achado(
+        3, nome, OBSERVACAO,
+        f"a sua ideia mais desenvolvida encadeia {_quantia(passos, 'passo')} — uma ideia "
+        f"levando à outra, em sequência. Medimos isso em 160 redações corrigidas e "
+        f"ele acerta pouco ({_quantia(MAIOR_CAMINHO_CORTE, 'passo')} separam os grupos "
+        f"com só 61%), então mostramos o número sem transformar em nota",
     )
 
 
@@ -151,10 +213,9 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
     evidencias = [
         " ⇄ ".join(extracao.exibir(c) for c in laco) for laco in lacos
     ]
-    plural = "s" if len(lacos) > 1 else ""
     return Achado(
         3, "ideias que se puxam", OBSERVACAO,
-        f"{len(lacos)} grupo{plural} de ideias em que cada uma aparece como causa da "
+        f"{_quantia(len(lacos), 'grupo')} de ideias em que cada uma aparece como causa da "
         f"outra, formando um vai e vem. Isso não é erro — muitas vezes é o ciclo que "
         f"você quis descrever. Vale reler só para confirmar que foi de propósito",
         evidencias,
@@ -189,6 +250,17 @@ def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achad
         ),
         soltas,
     )
+
+
+def _ligacao_ao_tema(ligadas: int, total: int) -> str:
+    """"três de três ideias" soa a relatório; quando são todas, diga todas."""
+    if ligadas == total:
+        if total == 1:
+            return "a única ideia da sua proposta se liga ao tema"
+        return f"todas as {_quantia(total, 'ideia', feminino=True)} da sua proposta se ligam ao tema"
+    verbo = "se liga" if ligadas == 1 else "se ligam"
+    return (f"{_numero(ligadas, feminino=True)} de "
+            f"{_quantia(total, 'ideia', feminino=True)} da sua proposta {verbo} ao tema")
 
 
 def _avaliar_proposta(
@@ -228,9 +300,10 @@ def _avaliar_proposta(
 
     passos = max(len(conceitos) - 1, 0)
     detalhe = (
-        f"{ligadas} de {total} ideia(s) da sua proposta se ligam ao tema. A mais "
-        f"próxima é '{extracao.exibir(caminho.melhor_proposta or '')}', a {passos} "
-        f"ligação(ões) de distância"
+        f"{_ligacao_ao_tema(ligadas, total)}. A mais próxima é "
+        f"'{extracao.exibir(caminho.melhor_proposta or '')}'"
+        + (", que é o próprio tema" if passos == 0 else
+           f", a {_quantia(passos, 'ligação', 'ligações', feminino=True)} de distância")
     )
     if ligadas < total:
         desligadas = [
@@ -266,7 +339,12 @@ def diagnosticar(
     )
 
     lacos = [sorted(c) for c in ciclos_argumentativos(grafo)]
-    cadeia = cadeia_argumentativa(grafo)
+
+    # A condensação vem antes de propósito: sobre ela o Kahn sempre ordena, então
+    # o indicador de C3 existe em toda redação, inclusive nas que têm laço.
+    condensacao = condensar(grafo, tarjan(grafo))
+    cadeia = cadeia_argumentativa(condensacao.grafo)
+    maior_caminho = maior_caminho_dag(condensacao.grafo)
 
     caminho = None
     if alvos.tema is not None and alvos.propostas:
@@ -274,7 +352,8 @@ def diagnosticar(
 
     achado_tema, orfaos = _avaliar_tema(grafo, alvos, extracao)
 
-    achados = [_avaliar_progressao(grafo, cadeia)]
+    achados = [_avaliar_progressao(grafo, cadeia),
+               _avaliar_encadeamento(maior_caminho)]
     laco = _avaliar_lacos(lacos, extracao)
     if laco is not None:
         achados.append(laco)
@@ -289,6 +368,8 @@ def diagnosticar(
         caminho=caminho,
         orfaos=orfaos,
         achados=achados,
+        condensacao=condensacao,
+        maior_caminho=maior_caminho,
     )
 
 
@@ -303,6 +384,7 @@ _MARCAS = {
 
 def _main(argv: list[str]) -> int:
     import sys
+    import textwrap
 
     if not 2 <= len(argv) <= 3:
         print("uso: python -m src.diagnostico <arquivo.txt> [titulo]", file=sys.stderr)
@@ -319,10 +401,10 @@ def _main(argv: list[str]) -> int:
 
     d = diagnosticar(texto, titulo=titulo)
 
-    sequencia = "—" if d.cadeia is None else str(d.tamanho_da_cadeia)
+    profundidade = max(d.tamanho_maior_caminho - 1, 0)
     print(f"{d.num_conceitos} ideias · {d.num_relacoes} ligações · "
           f"{d.cobertura:.0%} das frases aproveitadas · "
-          f"sequência de {sequencia} passos")
+          f"maior encadeamento de {profundidade} passos")
     if d.alvos.tema:
         print(f"ideia central: {d.exibir(d.alvos.tema)} "
               f"(a partir do {d.alvos.origem_do_tema})")
@@ -330,7 +412,7 @@ def _main(argv: list[str]) -> int:
 
     for achado in d.achados:
         print(f"{_MARCAS[achado.status]} C{achado.competencia} · {achado.nome}")
-        print(f"                {achado.resumo}")
+        print(f"                {frase(achado.resumo)}")
         for evidencia in achado.evidencias[:3]:
             recorte = evidencia if len(evidencia) <= 95 else evidencia[:92] + "..."
             print(f"                  · {recorte}")
@@ -338,9 +420,14 @@ def _main(argv: list[str]) -> int:
 
     indefinidos = len(d.achados) - len(d.conclusivos)
     if indefinidos:
-        print(f"{indefinidos} dos {len(d.achados)} pontos acima ficaram sem veredito: "
-              f"testamos esses indicadores em 160 redações já corrigidas")
-        print("e eles não separaram texto bom de ruim, então mostramos o número sem julgar.")
+        verbo = "ficou" if indefinidos == 1 else "ficaram"
+        total_pontos = _numero(len(d.achados))
+        aviso = (
+            f"{_quantia(indefinidos, 'ponto')} dos {total_pontos} acima {verbo} sem "
+            "veredito: testamos esses indicadores em 160 redações já corrigidas e eles "
+            "não separaram texto bom de ruim, então mostramos o número sem julgar."
+        )
+        print(textwrap.fill(frase(aviso), width=88))
     return 0
 
 

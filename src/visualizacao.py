@@ -91,6 +91,58 @@ def para_dot(d: Diagnostico, *, apenas_conectados: bool = False) -> str:
     return "\n".join(linhas)
 
 
+def para_dot_condensado(d: Diagnostico) -> str:
+    """Desenha o grafo condensado: cada laço vira um bloco só."""
+    condensacao = d.condensacao
+    if condensacao is None:
+        return "digraph vazio {}"
+
+    no_maior_caminho = set(d.maior_caminho or [])
+    arestas_do_maior_caminho = set()
+    if d.maior_caminho:
+        percurso = d.maior_caminho
+        arestas_do_maior_caminho = {
+            (percurso[i], percurso[i + 1]) for i in range(len(percurso) - 1)
+        }
+
+    linhas = [
+        "digraph condensado {",
+        '  rankdir=LR;',
+        '  bgcolor="transparent";',
+        '  node [shape=box, style="rounded,filled", fontname="Helvetica", '
+        f'fontsize=11, fontcolor="{COR_TEXTO}", margin="0.12,0.07"];',
+        '  edge [fontname="Helvetica", fontsize=9, color="#8A9691", arrowsize=0.7];',
+    ]
+
+    for rotulo, membros in condensacao.membros.items():
+        eh_laco = len(membros) > 1
+        preenchimento, borda = (COR_LACO, BORDA_LACO) if eh_laco else (COR_NEUTRA, BORDA_NEUTRA)
+        texto_rotulo = " + ".join(sorted(d.exibir(m) for m in membros))
+
+        atributos = [
+            f'label="{_escapar(texto_rotulo)}"',
+            f'fillcolor="{preenchimento}"',
+            f'color="{borda}"',
+        ]
+        if rotulo in no_maior_caminho:
+            atributos.append("penwidth=2.5")
+
+        linhas.append(f'  "{_escapar(rotulo)}" [{", ".join(atributos)}];')
+
+    for aresta in condensacao.grafo.arestas():
+        atributos = []
+        if (aresta.origem, aresta.destino) in arestas_do_maior_caminho:
+            atributos.append(f'color="{BORDA_CAMINHO}"')
+            atributos.append("penwidth=2.5")
+        linhas.append(
+            f'  "{_escapar(aresta.origem)}" -> "{_escapar(aresta.destino)}" '
+            f'[{", ".join(atributos)}];'
+        )
+
+    linhas.append("}")
+    return "\n".join(linhas)
+
+
 def legenda() -> list[tuple[str, str]]:
     """Pares (cor, significado), para a interface montar a legenda."""
     return [
