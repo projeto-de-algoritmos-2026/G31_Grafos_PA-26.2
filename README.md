@@ -1,6 +1,6 @@
 # Raio-X da Redação
 
-**Número do Grupo:** 31 &nbsp;·&nbsp; **Conteúdo da Disciplina:** Grafos
+**Número do Grupo:** 31 &nbsp;·&nbsp; **Conteúdo:** Grafos
 
 Diagnóstico da estrutura argumentativa de redações do ENEM por meio de algoritmos em grafos direcionados.
 
@@ -18,6 +18,32 @@ Uma redação dissertativo-argumentativa bem construída encadeia ideias: o tema
 O aplicativo recebe a redação e devolve um diagnóstico visual: o mapa das ideias, quantas ideias distintas o texto sustenta, quão fundo ele encadeia, os grupos de ideias que se puxam mutuamente, e a ligação entre o tema e a proposta. Cada aresta do grafo aponta para a frase original que a gerou, então o diagnóstico é **verificável** — o usuário confere a leitura em vez de acreditar nela.
 
 Testamos a hipótese contra 160 redações já corrigidas por humanos. **Ela se confirmou para a Competência 3 e não se confirmou para as Competências 2 e 5.** Os números estão na seção de validação, e o programa só emite juízo onde a medição sustenta.
+
+## O aplicativo
+
+Uma redação colada na caixa, um clique em **Analisar**, e o programa devolve as
+métricas, o mapa das ideias e o laudo por competência.
+
+![Tela do Raio-X da Redação com uma redação analisada](docs/tela-geral.png)
+
+O **mapa das ideias** é o grafo direcionado extraído do texto. Verde marca o
+caminho do tema até a proposta; vermelho, um argumento em círculo; a espessura
+da seta cresce com a frequência da relação no texto.
+
+![Mapa das ideias extraído da redação](docs/tela-mapa.png)
+
+O **laudo** separa o que a medição sustenta do que ela não sustenta. Só vira
+veredito (✅ ⚠️ ⛔) o indicador validado no corpus; o resto aparece abaixo,
+sob "Números que mostramos sem avaliar", com o número e sem julgamento.
+
+![Laudo por competência, com veredito e evidências](docs/tela-laudo.png)
+
+A **espinha dorsal do argumento** mostra o maior caminho no grafo condensado, e
+o expander revela a condensação em si — cada laço colapsado num vértice único, o
+que garante um grafo acíclico e permite que o diagnóstico funcione em qualquer
+redação.
+
+![Espinha dorsal do argumento e o grafo condensado](docs/tela-condensado.png)
 
 ## Modelagem
 
@@ -41,8 +67,50 @@ Todos foram **implementados do zero pela dupla**. Nenhuma biblioteca de grafos �
 | Condensação de componentes | `O(V + E)` | Colapsa cada laço num vértice único, transformando qualquer grafo em DAG |
 | Maior caminho em DAG | `O(V + E)` | Mede a espinha dorsal do argumento — funciona mesmo em texto com laço |
 
-> **Seção a completar pela Eduarda:** notas de implementação de cada algoritmo —
-> escolhas de estrutura de dados e por que Tarjan em vez de Kosaraju.
+### Notas de implementação
+
+**Tarjan, e não Kosaraju.** Os dois encontram componentes fortemente conectados
+em `O(V + E)`, mas o Kosaraju precisa de **duas** buscas em profundidade e do
+grafo transposto; o Tarjan resolve em uma passada só, mantendo por vértice um
+`indice` (ordem de descoberta) e um `lowlink` (o menor índice alcançável pela
+subárvore). Quando `lowlink[v] == indice[v]`, `v` é a raiz de um componente, e o
+que estiver acima dele na pilha é esse componente. Como o grafo já é construído
+uma vez por redação, evitar a segunda travessia e a cópia transposta é economia
+real de código, não só de tempo.
+
+A implementação é **recursiva**, que é a forma em que o algoritmo é mais legível.
+O limite prático é a pilha do Python (~1000 quadros): uma redação gera dezenas de
+conceitos, então isso não chega perto de ser um problema aqui — mas em um grafo
+com milhares de vértices em cadeia seria preciso reescrever de forma iterativa.
+
+**Kahn, e não DFS.** A ordenação topológica por Kahn é iterativa e devolve
+`None` naturalmente quando há ciclo: se a ordem final não contém todos os
+vértices, é porque alguém nunca chegou a grau de entrada zero. A alternativa por
+DFS exigiria detectar o ciclo à parte. A fila é um `deque`, não uma lista:
+`list.pop(0)` desloca todos os elementos e custa `O(V)`, o que levaria o
+algoritmo a `O(V² + E)`.
+
+**A condensação entra antes do Kahn.** `condensar()` roda o Tarjan, dá a cada
+componente um rótulo (a junção dos conceitos que o formam), e reconstrói as
+arestas entre componentes descartando as internas. O resultado é acíclico **por
+construção** — a prova é direta: se houvesse um ciclo entre dois componentes,
+eles seriam um componente só, e o Tarjan os teria unido. É isso que faz o Kahn
+nunca falhar no diagnóstico, e é a razão de a Competência 3 ter veredito em toda
+redação, inclusive nas que contêm um argumento em círculo.
+
+**Maior caminho no DAG.** Em grafo geral o problema é NP-difícil; em DAG ele é
+linear, e é a ordenação topológica que torna isso possível. Percorrendo os
+vértices em ordem topológica, todo predecessor de `v` já foi processado quando
+chegamos em `v`, então `melhor[v] = max(melhor[u]) + 1` sobre os predecessores
+resolve em uma passada, sem revisitar nada. Guardamos também o predecessor
+escolhido, para reconstruir o caminho de trás para frente.
+
+**Dijkstra com heap e remoção preguiçosa.** Em vez de atualizar a prioridade de
+um vértice já na fila — operação que o `heapq` do Python não oferece —,
+empilhamos uma nova entrada e ignoramos as obsoletas na saída, com um conjunto
+`finalizados`. A fila pode crescer até `O(E)` entradas, mas cada uma é tratada
+uma vez, e a complexidade continua `O((V + E) log V)`. Os pesos são
+`1 / frequência`, sempre positivos, que é a condição de validade do algoritmo.
 
 ### Decisões de escopo
 
@@ -99,6 +167,7 @@ Esses dois achados mudam o papel do Tarjan no projeto: ele não pontua o texto, 
 │   └── visualizacao.py       gera o DOT do grafo
 ├── tests/                    192 testes; grafos pequenos com resposta conhecida
 ├── data/                     três redações de exemplo (o corpus fica em data/raw, não versionado)
+├── docs/                     prints do aplicativo usados neste README
 └── resultados/               saída da validação: gráfico, tabela e dados brutos
 ```
 

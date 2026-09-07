@@ -226,7 +226,7 @@ def medir(redacoes: list[Redacao], metrica, extrator: Extrator) -> list[int]:
 
 def tabela_markdown(altas: Grupo, baixas: Grupo, corte: int, taxa: float, metrica: str) -> str:
     linhas = [
-        f"| grupo | n | p25 | mediana | p75 |",
+        "| grupo | n | p25 | mediana | p75 |",
         "| --- | --- | --- | --- | --- |",
     ]
     for g in (altas, baixas):

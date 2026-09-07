@@ -1,8 +1,8 @@
 """Análise avançada de grafos: ciclos, cadeias, rastreabilidade, métricas."""
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass
-from typing import Iterable
 
 from src.grafo import Grafo
 
@@ -58,11 +58,13 @@ def ciclos_argumentativos(grafo: Grafo) -> list[set[str]]:
 def kahn(grafo: Grafo) -> list[str] | None:
     """Algoritmo de Kahn para ordenação topológica."""
     graus = grafo.grau_entrada()
-    fila: list[str] = [v for v in grafo.vertices if graus[v] == 0]
+    # deque, não list: `list.pop(0)` desloca todos os elementos e custa O(V),
+    # o que jogaria o Kahn para O(V² + E). Com deque a retirada é O(1).
+    fila = deque(v for v in grafo.vertices if graus[v] == 0)
     ordem: list[str] = []
 
     while fila:
-        u = fila.pop(0)
+        u = fila.popleft()
         ordem.append(u)
 
         for v, _ in grafo.vizinhos(u):

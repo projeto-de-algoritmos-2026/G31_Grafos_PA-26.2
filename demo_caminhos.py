@@ -107,7 +107,7 @@ def main() -> None:
     resultado2 = caminho_tema_proposta(g2, tema="desigualdade social",
                                         propostas=["politica publica"])
     print(f"\n  Alcancavel: {resultado2.alcancavel}")
-    print(f"  [FALHA] Proposta nao conectada ao tema (falha C5)")
+    print("  [FALHA] Proposta nao conectada ao tema (falha C5)")
     
     print("\n" + "=" * 70)
     print("CASO 3: Ciclo argumentativo (falha C3)")

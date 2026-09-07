@@ -277,6 +277,33 @@ class TestProposta(unittest.TestCase):
         )
 
 
+class TestNomesDosAchados(unittest.TestCase):
+    """O nome do achado aparece colado no nome da competência, na mesma linha."""
+
+    NOMES_DAS_COMPETENCIAS = {
+        2: "compreensão do tema",
+        3: "coerência e argumentação",
+        5: "proposta de intervenção",
+    }
+
+    def test_nenhum_achado_repete_o_nome_da_competencia(self):
+        g = _cadeia(4)
+        achados = [
+            _avaliar_progressao(g, list(g.vertices)),
+            _avaliar_encadeamento(list(g.vertices)),
+            _avaliar_tema(g, Alvos(tema="c0"), _extracao_de(g))[0],
+            _avaliar_proposta(g, Alvos(tema="c0"), None, _extracao_de(g)),
+        ]
+        for achado in achados:
+            competencia = self.NOMES_DAS_COMPETENCIAS[achado.competencia]
+            for palavra in achado.nome.split():
+                if len(palavra) > 4:
+                    self.assertNotIn(
+                        palavra, competencia,
+                        f"'{achado.nome}' repete '{palavra}' de '{competencia}'",
+                    )
+
+
 class TestDiagnostico(unittest.TestCase):
     """A estrutura do laudo."""
     def setUp(self):

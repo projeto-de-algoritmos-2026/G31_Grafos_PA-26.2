@@ -2,13 +2,7 @@
 import unittest
 
 from src import extracao
-from src.extracao import (
-    Extrator,
-    SUBSTANTIVOS_LEVES,
-    SUBSTANTIVOS_VAZIOS,
-    _rotulo,
-    _texto_exibicao,
-)
+from src.extracao import Extrator, SUBSTANTIVOS_LEVES, SUBSTANTIVOS_VAZIOS
 
 
 def _modelo_disponivel() -> bool:

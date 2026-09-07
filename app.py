@@ -33,10 +33,29 @@ def carregar_extrator() -> Extrator:
     return Extrator()
 
 
+#: Nome de arquivo não é rótulo de interface: os arquivos são sem acento por
+#: portabilidade, e "exemplo sintetico com laco" não diz nada a quem vai
+#: escolher. Aqui o rótulo descreve o que a redação exercita.
+ROTULOS_DOS_EXEMPLOS = {
+    "exemplo_sintetico_bem_encadeado": "Redação bem encadeada",
+    "exemplo_sintetico_com_laco": "Redação com argumento em círculo",
+    "exemplo_sintetico_fragmentado": "Redação com ideias soltas",
+}
+
+COLAR = "Colar a minha redação"
+
+
+def rotular(nome_do_arquivo: str) -> str:
+    """Rótulo bonito para um exemplo; sem entrada na tabela, arruma o nome."""
+    if nome_do_arquivo in ROTULOS_DOS_EXEMPLOS:
+        return ROTULOS_DOS_EXEMPLOS[nome_do_arquivo]
+    return nome_do_arquivo.replace("_", " ").capitalize()
+
+
 def listar_exemplos() -> dict[str, Path]:
     if not PASTA_EXEMPLOS.exists():
         return {}
-    return {p.stem.replace("_", " "): p for p in sorted(PASTA_EXEMPLOS.glob("*.txt"))}
+    return {rotular(p.stem): p for p in sorted(PASTA_EXEMPLOS.glob("*.txt"))}
 
 
 #: O botão de tela cheia do Streamlit é posicionado em `right: -48px`, ou seja,
@@ -70,12 +89,10 @@ def painel_de_entrada() -> tuple[str, str, str, bool, bool]:
         st.subheader("Redação")
 
         texto_inicial = ""
-        escolha = "(colar meu texto)"
+        escolha = COLAR
         if exemplos:
-            escolha = st.selectbox(
-                "Carregar exemplo", ["(colar meu texto)"] + list(exemplos)
-            )
-            if escolha != "(colar meu texto)":
+            escolha = st.selectbox("Carregar exemplo", [COLAR] + list(exemplos))
+            if escolha != COLAR:
                 texto_inicial = exemplos[escolha].read_text(encoding="utf-8")
 
         titulo = st.text_input(
@@ -200,8 +217,8 @@ def mostrar_rastro(d) -> None:
     rastro = rastrear_caminho(d.grafo, d.caminho.caminho)
     for origem, destino, frases in rastro.arestas_frases:
         with st.expander(f"{d.exibir(origem)} → {d.exibir(destino)}"):
-            for frase in frases:
-                st.write(f"“{frase}”")
+            for citacao in frases:
+                st.write(f"“{citacao}”")
 
 
 def _rotulo_legivel(d, rotulo: str) -> str:
@@ -229,15 +246,11 @@ def mostrar_estrutura_argumento(d) -> None:
         st.info("Não há uma cadeia a destacar neste texto.")
         return
 
-    passos = max(d.tamanho_maior_caminho - 1, 0)
+    # O número já está no cartão "Maior encadeamento" lá em cima; repetir aqui
+    # como st.metric só duplicava a informação. Aqui interessa o percurso.
     inicio = _rotulo_legivel(d, d.maior_caminho[0])
     fim = _rotulo_legivel(d, d.maior_caminho[-1])
 
-    st.metric(
-        "Maior cadeia (grafo condensado)", _quantia(passos, "passo"),
-        help="Caminho mais longo no DAG condensado — a sequência de ideias "
-             "mais extensa que o texto sustenta, ponta a ponta.",
-    )
     st.write(f"De **{inicio}** até **{fim}**:")
     st.write(" → ".join(_rotulo_legivel(d, r) for r in d.maior_caminho))
 

@@ -224,7 +224,9 @@ def _avaliar_lacos(lacos: list[list[str]], extracao: Extracao) -> Achado | None:
 
 def _avaliar_tema(grafo: Grafo, alvos: Alvos, extracao: Extracao) -> tuple[Achado, list[str]]:
     """Alcance do conceito-tema (Dijkstra a partir dele)."""
-    nome = "ligação com o tema"
+    # aparece como "Competência 2 — compreensão do tema · alcance da ideia
+    # central": o nome do achado não pode repetir o da competência
+    nome = "alcance da ideia central"
 
     if alvos.tema is None:
         return (
@@ -267,7 +269,8 @@ def _avaliar_proposta(
     grafo: Grafo, alvos: Alvos, caminho: ResultadoTemaProposta | None, extracao: Extracao
 ) -> Achado:
     """Caminho mínimo (Dijkstra) do conceito-tema até os conceitos da proposta."""
-    nome = "proposta de intervenção"
+    # idem: ao lado de "Competência 5 — proposta de intervenção"
+    nome = "ligação com o tema"
 
     if not alvos.propostas:
         return Achado(
@@ -284,7 +287,9 @@ def _avaliar_proposta(
         )
 
     conceitos = [extracao.exibir(c) for c in (caminho.caminho or [])]
-    evidencias = [" → ".join(conceitos)] if conceitos else []
+    # Com uma aresta só, este resumo seria idêntico à linha detalhada logo
+    # abaixo ("A → B: frase"). Só vale a pena quando há mais de um salto.
+    evidencias = [" → ".join(conceitos)] if len(conceitos) > 2 else []
 
     if caminho.caminho and len(caminho.caminho) > 1:
         rastro = rastrear_caminho(grafo, caminho.caminho)
