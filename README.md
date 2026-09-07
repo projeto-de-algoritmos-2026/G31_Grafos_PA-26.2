@@ -238,7 +238,7 @@ A nota separada por competência é o que torna a validação possível: as mét
 
 ## Apresentação
 
-Vídeo de apresentação do trabalho (5 minutos):
+Vídeo de apresentação do trabalho:
 
 [![Raio-X da Redação — vídeo de apresentação](https://img.youtube.com/vi/w7yFIsnr5gw/hqdefault.jpg)](https://www.youtube.com/watch?v=w7yFIsnr5gw)
 
