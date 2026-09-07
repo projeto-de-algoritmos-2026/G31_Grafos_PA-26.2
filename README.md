@@ -1,6 +1,6 @@
 # Raio-X da Redação
 
-**Número do Grupo:** 31 &nbsp;·&nbsp; **Conteúdo:** Grafos
+**Número do Grupo:** 31 &nbsp;·&nbsp; **Conteúdo da Disciplina:** Grafos
 
 Diagnóstico da estrutura argumentativa de redações do ENEM por meio de algoritmos em grafos direcionados.
 
@@ -242,7 +242,7 @@ A nota separada por competência é o que torna a validação possível: as mét
 
 ## Origem do tema
 
-O tema nasceu do interesse das autoras por análise automática de redações, explorado antes em um trabalho de outra disciplina que modelava o texto como uma rede **não-direcionada** de coocorrência de palavras. A modelagem em grafo direcionado, o diagnóstico estrutural e todos os algoritmos deste repositório são novos e foram desenvolvidos para esta disciplina.
+O tema nasceu de um interesse anterior por análise automática de redações: em outra disciplina, **uma das autoras** desenvolveu um trabalho sobre o mesmo material, com uma dinâmica diferente — o texto era modelado como uma rede **não-direcionada** de coocorrência de palavras, sem direção nem noção de causa. A modelagem em grafo direcionado, o diagnóstico estrutural e todos os algoritmos deste repositório são novos e foram desenvolvidos para esta disciplina.
 
 ## Referências
 
